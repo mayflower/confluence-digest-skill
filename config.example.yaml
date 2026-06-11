@@ -8,6 +8,7 @@ signals:
   titleKeywords: []        # Themen-Keywords, nur Titel-Match (title ~) – schmal, für breite Orts-/Adressbegriffe (z.B. Standort).
   people:   []             # Stufe 2
 limits:
-  maxSummaries: 8
+  highlights: 5        # Anzahl detaillierter Highlights (Top-Score, je 2–4 Sätze)
+  groupSummaries: 8    # max Kurz-Summaries (2–3 Sätze) je Restgruppe; darüber nur Titel + Link
 onboarding:
   hintShown: false         # Stufe 1.5: wird true, sobald der Keyword-Hinweis einmal gezeigt ODER `setup` gelaufen ist
