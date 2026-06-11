@@ -7,23 +7,28 @@ org-weit kürzlich geänderte, für dich relevante Seiten findet und einen prior
 **Status:** Stufe 2a implementiert (`/confluence-digest` + `setup`-Befehl, Keyword-Signal „Deine
 Themen" und Personen-Signal „Verfolgte Personen"). Design & Plan siehe [`docs/plans/`](docs/plans/).
 
-## Installation
+## Inbetriebnahme (Schnellstart)
 
-Voraussetzung: Ein **Atlassian-MCP-Server** muss eingerichtet und authentifiziert sein
-(`/mcp` → Server → authenticate). Trage seinen Namen in `config.local.yaml` unter **`mcpServer`**
-ein (Default `atlassian-mayflower`); die Skill ruft dann die Tools `mcp__<mcpServer>__*` auf.
-Beispiele: lokaler Server `atlassian-mayflower`/`atlassian`, oder der claude.ai-Connector
-`claude_ai_Atlassian`. (Bei einem eigenen lokalen Server beim OAuth nur die gewünschte Site freigeben.)
+Drei Dinge machen das Tool für dich nutzbar: ein **Atlassian-MCP-Server**, sein Name (**`mcpServer`**)
+und deine **`cloudId`**. In vier Schritten:
 
-Skill installieren (Symlink ins Claude-Code-Skills-Verzeichnis):
+1. **Atlassian-MCP einrichten & authentifizieren:** `/mcp` → Server → authenticate. Funktioniert mit
+   einem lokalen Server oder dem claude.ai-Connector. (Bei eigenem lokalen Server beim OAuth nur die
+   gewünschte Site freigeben.)
+2. **Skill installieren** (Symlink ins Claude-Code-Skills-Verzeichnis), danach Claude Code neu laden:
+   ```bash
+   ln -s ~/Code/confluence-digest ~/.claude/skills/confluence-digest
+   ```
+3. **Config setzen:** Beim ersten Aufruf legt die Skill `config.local.yaml` aus der Vorlage an
+   (gitignored, wird nie geteilt). Trage dort zwei Werte ein:
+   - **`mcpServer`** = Name deines Atlassian-MCP-Servers (Default `atlassian-mayflower`; z.B.
+     `atlassian` oder der Connector `claude_ai_Atlassian`). Die Skill ruft dann `mcp__<mcpServer>__*` auf.
+   - **`cloudId`** = cloudId deiner Confluence-Instanz (siehe unten „cloudId ermitteln").
+   - Die Account-ID wird automatisch via MCP ermittelt – nichts einzutragen.
+4. **Loslegen:** `/confluence-digest setup` (Themen/Personen pflegen, optional) und dann
+   `/confluence-digest`.
 
-```bash
-ln -s ~/Code/confluence-digest ~/.claude/skills/confluence-digest
-```
-
-Danach Claude Code neu laden. Beim ersten Aufruf erzeugt die Skill automatisch eine
-nutzer-lokale `config.local.yaml` (mit deiner via MCP ermittelten Account-ID) – die ist
-gitignored und wird nie geteilt.
+Mehr als `mcpServer` + `cloudId` musst du nicht anfassen – die Logik in `SKILL.md` bleibt unberührt.
 
 ### cloudId ermitteln
 
