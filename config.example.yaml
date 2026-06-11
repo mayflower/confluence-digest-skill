@@ -4,7 +4,7 @@ accountId: auto            # beim 1. Lauf via atlassianUserInfo automatisch gef√
 signals:
   mentions: true
   ownEdits: true
-  keywords: []             # Stufe 1.5
+  keywords: []             # Themen-Keywords (Liste). Nicht-leer = Keyword-Signal aktiv; per Onboarding/`setup` bef√ºllt (Stufe 1.5).
   people:   []             # Stufe 2
 limits:
   maxSummaries: 8

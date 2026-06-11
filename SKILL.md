@@ -1,12 +1,13 @@
 ---
 name: confluence-digest
-description: Use when the user runs /confluence-digest (optionally with a time window `Nh`/`Nd`, z.B. 24h, 72h, 7d) to get a prioritized overview of recently changed Confluence pages (mayflowergmbh) relevant to them — pages they are mentioned on or have contributed to — with AI summaries. Triggers: /confluence-digest, Confluence-Überblick, was ist neu in Confluence, Confluence-Digest.
+description: Use when the user runs /confluence-digest (optionally with a time window `Nh`/`Nd`, z.B. 24h, 72h, 7d) to get a prioritized overview of recently changed Confluence pages (mayflowergmbh) relevant to them — pages they are mentioned on or have contributed to, plus optional topic keywords — with AI summaries; `/confluence-digest setup` runs an interview to maintain those topics/keywords. Triggers: /confluence-digest, Confluence-Überblick, was ist neu in Confluence, Confluence-Digest, confluence-digest setup, eigene Themen/Keywords pflegen.
 ---
 
-# Confluence-Digest (Stufe 1)
+# Confluence-Digest (Stufe 1.5)
 
 Priorisierter Überblick über kürzlich geänderte, für die Nutzer:in relevante Confluence-Seiten
-auf `mayflowergmbh`. Stufe 1 = Signal „mich betreffend" (Mentions + eigene Bearbeitungen).
+auf `mayflowergmbh`. Signal „mich betreffend" (Mentions + eigene Bearbeitungen) plus optionale
+Themen-Keywords („Deine Themen").
 
 **Datenquelle:** MCP-Server `atlassian-mayflower` (Tools `mcp__atlassian-mayflower__*`).
 **Konfiguration:** `config.local.yaml` im Skill-Verzeichnis (nutzer-lokal, gitignored).
@@ -27,7 +28,7 @@ Alle anderen Argumente (`<Fenster>`, `--dry-run`, kein Argument) laufen wie unte
 
 ## Ablauf
 
-### 1. Config laden / Mini-Onboarding
+### 1. Config laden / Onboarding
 - Das Skill-Verzeichnis wird über einen Symlink erreicht
   (`~/.claude/skills/confluence-digest` → echtes Repo). Lies und schreibe `config.local.yaml`
   **neben `SKILL.md` im aufgelösten echten Verzeichnis** (z.B. via `realpath`), damit die Datei
@@ -65,13 +66,13 @@ Für jedes aktive Signal eine CQL-Abfrage via `mcp__atlassian-mayflower__searchC
 
 (Nur Signale ausführen, die in der Config `true` sind.)
 
-**Keyword-Signal (Stufe 1.5):** Ist `signals.keywords` true **und** die Liste `keywords` nicht
-leer, führe **pro Keyword eine eigene** CQL-Abfrage aus (Volltext-Match, auch im Body):
+**Keyword-Signal (Stufe 1.5):** Ist `signals.keywords` **nicht leer**, führe pro Eintrag in
+`signals.keywords` eine Abfrage aus (Volltext-Match, auch im Body):
 
-- keyword: `text ~ "<kw>" AND type = page AND lastmodified >= now("<FENSTER>") ORDER BY lastmodified DESC`
+- keyword: `text ~ "<kw>" AND type = page AND lastmodified >= now("<FENSTER>") ORDER BY lastmodified DESC`, `limit (= 50)`
 
-ebenfalls `limit (= 50)` und dasselbe Fenster aus Schritt 2; `expand` ist hier nicht nötig.
-Ist `keywords` leer (oder `signals.keywords` false), entfällt dieser Schritt vollständig.
+ebenfalls dasselbe Fenster aus Schritt 2; `expand` ist hier nicht nötig.
+Ist die Liste leer, entfällt dieser Schritt.
 
 **Antwort-Format (wichtig – nach Bedeutung mappen, nicht auf einen festen Pfad verlassen):**
 `searchConfluenceUsingCql` liefert je nach Fall eine von zwei Formen. Lies die Felder nach
@@ -99,7 +100,8 @@ Die absolute URL im rohen Format = `_links.base` (z.B. `https://mayflowergmbh.at
   (eine Seite kann von mehreren Keywords getroffen werden → alle merken).
 - Merke je Query die Gesamtzahl (`totalSize` bzw. `content.totalCount`); ist sie `> limit`,
   für die Volumen-Notiz vormerken (`N = Gesamtzahl - limit`, also `Gesamtzahl - 50`). Das gilt
-  je mention-/ownEdit-Query **und je Keyword-Query** (Gesamtzahl pro Keyword separat führen).
+  je mention-/ownEdit-Query **und je Query pro Eintrag aus `signals.keywords`** (Gesamtzahl pro
+  Keyword separat führen).
 
 ### 5. Ranken
 Score je Seite: Mention = 4, ownEdit = 2, keyword = 1, summiert über die Treffer-Signale.
@@ -166,13 +168,14 @@ Regeln:
 - Leere Gruppen weglassen. Gar nichts → „🟢 Nichts Neues im Zeitraum (<Label>)."
 - Volumen-Notiz anhängen, wo die Gesamtzahl `> limit`: „(+N weitere – Fenster ggf. zu groß)".
   Das gilt auch je Keyword-Query (z.B. „(+N weitere zu ‚<kw>' – Fenster ggf. zu groß)").
-- **Setup-Hinweis (Stufe 1.5):** Ist die Liste `keywords` leer UND `onboarding.hintShown`
+- **Setup-Hinweis (Stufe 1.5):** Ist `signals.keywords` leer UND `onboarding.hintShown`
   false (ein **fehlender** `onboarding`-Schlüssel gilt als `false`), hänge **einmalig** am Ende
   des Digests eine dezente Zeile an:
   „💡 Tipp: `/confluence-digest setup`, um eigene Themen hinzuzufügen."
   Setze danach `onboarding.hintShown: true` in `config.local.yaml` (Schlüssel anlegen, falls er
   fehlt), damit der Hinweis bei künftigen Läufen nicht erneut erscheint. Sind bereits Keywords
-  gesetzt, entfällt der Hinweis.
+  gesetzt, entfällt der Hinweis. Wurde in DIESEM Lauf das Interview durchlaufen oder wurden
+  gerade Keywords gesetzt, gilt `onboarding.hintShown` bereits als true — der Hinweis entfällt.
 
 ## Fehlerbehandlung
 - MCP `atlassian-mayflower` nicht verbunden / Auth-Fehler → klare Meldung:
@@ -183,11 +186,11 @@ Regeln:
 ## --dry-run
 Schritte 1–6 normal, aber statt Schritt 7/8: gib pro Signal das CQL und die Gesamtzahl aus,
 plus die gerankte Trefferliste (Titel + Signale), ohne Seiten zu holen oder zusammenzufassen.
-Bei gesetzten Keywords je Keyword das `text ~`-CQL plus dessen Gesamtzahl ausgeben.
+Bei nicht-leerer `signals.keywords`: je Eintrag das `text ~`-CQL plus dessen Gesamtzahl ausgeben.
 
 ## setup / Onboarding-Interview
 Wird ausgelöst durch `/confluence-digest setup` **oder** beim Erststart einer neuen Nutzer:in
-(§1, fehlende `config.local.yaml`). Ziel: die Liste `keywords` in `config.local.yaml` pflegen.
+(§1, fehlende `config.local.yaml`). Ziel: die Liste `signals.keywords` in `config.local.yaml` pflegen.
 Stufe 1.5 deckt im Interview **nur Keywords** ab (+ Identitätsbestätigung); der Personen-Teil
 ist Stufe 2.
 
@@ -203,18 +206,22 @@ und bestätige: „Eingerichtet als <name>." Schlägt der Aufruf fehl → siehe 
 Aus den Treffern beider Abfragen Kandidaten ableiten:
 - **Labels:** alle `content.metadata.labels.results[].name` einsammeln (Labels sind oft
   sparse/leer – das ist ok, sie sind nur ein Teil der Quelle).
-- **Titel-Terme:** Titel (`<item>.title`) tokenisieren; Stoppwörter (de/en), reine Zahlen und
-  Jahreszahlen entfernen; verbleibende sinnvolle Terme nach Häufigkeit zählen.
-- **Kandidatenliste** = häufigste Labels + häufigste Titel-Terme, Top ~10, **case-insensitiv
-  dedupliziert** (eine Schreibweise je Begriff behalten).
+- **Titel-Terme:** Tokenisiere die Titel an Whitespace/Satzzeichen. Verwirf: Tokens < 3 Zeichen,
+  reine Zahlen, Jahreszahlen (19xx/20xx), gängige de/en-Stoppwörter sowie generische
+  Confluence-Begriffe (z.B. Meeting, Notes, Protokoll, Doku, Seite, Page, Übersicht). Zähle die
+  verbleibenden Tokens case-insensitiv. Bilde KEINE Mehrwort-Phrasen (nur Einzeltoken).
+- **Kandidatenliste** = zuerst Labels (nach Häufigkeit), dann Titel-Terme (nach Häufigkeit); bei
+  Gleichstand alphabetisch. Nimm nach case-insensitivem Dedup die ersten ~10.
 
 **3. Dialog.** Zeige die Kandidaten nummeriert. Die Nutzer:in kann frei auswählen, einzelne
 streichen und beliebige eigene Keywords ergänzen. Es gibt kein Minimum/Maximum; eine leere
 Auswahl ist erlaubt.
 
-**4. Ergebnis speichern.** Schreibe die gewählten Keywords nach `keywords:` in
+**4. Ergebnis speichern.** Schreibe die gewählten Keywords nach `signals.keywords` in
 `config.local.yaml` und setze `onboarding.hintShown: true` (Schlüssel `onboarding` anlegen,
 falls er fehlt). Damit erscheint der Setup-Hinweis aus §8 künftig nicht mehr.
 
 **5. Direkt loslaufen.** Biete an, sofort einen Digest zu laufen
 (normaler Ablauf ab §2 mit Standardfenster). Bei Zustimmung ausführen, sonst beenden.
+Der unmittelbar danach angebotene Digest-Lauf verwendet die soeben geschriebenen Config-Werte
+(Keywords in `signals.keywords` + `onboarding.hintShown: true`).

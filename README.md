@@ -41,8 +41,9 @@ eigene Bearbeitungen, dann Keyword-Treffer (Mention > ownEdit > keyword).
 `/confluence-digest setup` startet ein kurzes Interview: Es bestätigt deine Identität und
 schlägt Themen aus Labels und Titeln deiner jüngsten Aktivität vor. Du wählst aus, streichst
 oder ergänzt frei und die Auswahl landet in deiner `config.local.yaml`. **Neue Nutzer:innen**
-durchlaufen dieses Interview automatisch beim ersten Aufruf. Solange noch keine Keywords gesetzt
-sind, weist der Digest einmalig dezent auf den `setup`-Befehl hin.
+durchlaufen dieses Interview automatisch beim ersten Aufruf. Der einmalige dezente Hinweis auf
+den `setup`-Befehl betrifft nur Bestandsnutzer:innen aus Stufe 1, die noch keine Keywords gesetzt
+haben.
 
 ## An Kolleg:innen verteilen
 
