@@ -52,7 +52,7 @@ Zwei Match-Arten:
 
 Als viertes Signal kannst du **Kolleg:innen verfolgen**: Seiten, die eine verfolgte Person
 bearbeitet hat, erscheinen im Digest als vierte Gruppe **„👥 Verfolgte Personen"** (jeweils mit
-*(von &lt;Name&gt;)*). Personen werden in `signals.people` als `{name, id}` gespeichert (`id` =
+*(von &lt;name&gt;)*). Personen werden in `signals.people` als `{name, id}` gespeichert (`id` =
 Atlassian-`accountId`); pro Person läuft eine eigene CQL-Abfrage (`contributor = "<id>"`) für die
 Attribution „von wem". In der Rangfolge stehen Personen-Treffer gleichauf mit Keyword-Treffern
 (**Mentions > ownEdits > Themen > Personen**); eine Seite landet nur dann in „👥 Verfolgte
