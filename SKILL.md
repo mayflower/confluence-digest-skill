@@ -79,6 +79,22 @@ Eintrag in **beiden** nicht-leeren Listen je eine Abfrage aus. Sind beide Listen
 dieser Schritt. (Tipp: breite Begriffe, die als Ortsname/Adresse überall im Body vorkommen –
 z.B. der eigene Standort – gehören in `titleKeywords`, nicht in `keywords`.)
 
+**Personen-Signal (Stufe 2a):** Ist `signals.people` nicht leer, führe **pro Person** eine eigene
+Abfrage aus (eigene Query pro Person → Attribution „von wem"):
+
+- pro Eintrag mit aufgelöstem `id`:
+  `contributor = "<id>" AND type = page AND lastmodified >= now("<FENSTER>") ORDER BY lastmodified DESC`
+
+Jeweils `limit (= 50)`, gleiches Fenster aus Schritt 2. Ist die Liste leer, entfällt dieser Schritt.
+
+**Runtime-Auflösung fehlender IDs (vor den Abfragen):** Hat ein `people`-Eintrag einen `name`, aber
+keine/leere `id`, löse den Namen einmalig via `mcp__atlassian-mayflower__lookupJiraAccountId`
+(cloudId aus Config, `searchString = <name>`) auf: nimm den **ersten** Treffer aus
+`data.users.users[]`, verwende dessen `accountId` als `id` und schreibe den Wert in
+`config.local.yaml` zurück (so wird er bei künftigen Läufen wiederverwendet). Liefert die Auflösung
+keinen Treffer → diese Person für diesen Lauf **überspringen** und einen kurzen Hinweis vermerken
+(„Konnte ‚<name>' nicht auflösen – per `setup` korrigieren.").
+
 **Antwort-Format (wichtig – nach Bedeutung mappen, nicht auf einen festen Pfad verlassen):**
 `searchConfluenceUsingCql` liefert je nach Fall eine von zwei Formen. Lies die Felder nach
 folgender Bedeutung, und nutze pro Feld den ersten vorhandenen Pfad:
@@ -98,26 +114,33 @@ Die absolute URL im rohen Format = `_links.base` (z.B. `https://mayflowergmbh.at
 + `<item>.url`.
 
 ### 4. Mergen & dedupen
-- Sammle alle Treffer aller Abfragen (mentions, ownEdits, je Keyword). Schlüssel = Seiten-ID.
+- Sammle alle Treffer aller Abfragen (mentions, ownEdits, je Keyword, je Person). Schlüssel = Seiten-ID.
 - Pro Seite merke die Menge der Treffer-Signale (eine Seite kann mehrere Signale tragen, z.B.
-  mention UND ownEdit UND keyword).
+  mention UND ownEdit UND keyword UND person).
 - Keyword-Treffer mit dem Signal `keyword` vermerken **plus, welches Keyword** sie ausgelöst hat
   (aus `signals.keywords` ODER `signals.titleKeywords`; eine Seite kann von mehreren Keywords
   getroffen werden → alle merken).
+- Personen-Treffer mit dem Signal `person` vermerken **plus, welche Person** (Name) sie bearbeitet
+  hat. Mehrere verfolgte Personen können dieselbe Seite bearbeitet haben → alle Namen merken.
 - Merke je Query die Gesamtzahl (`totalSize` bzw. `content.totalCount`); ist sie `> limit`,
   für die Volumen-Notiz vormerken (`N = Gesamtzahl - limit`, also `Gesamtzahl - 50`). Das gilt
-  je mention-/ownEdit-Query **und je Query pro Keyword** (aus beiden Listen; Gesamtzahl pro
-  Keyword separat führen).
+  je mention-/ownEdit-Query, **je Query pro Keyword** (aus beiden Listen; Gesamtzahl pro
+  Keyword separat führen) **und je Query pro Person** (Gesamtzahl pro Person separat führen).
 
 ### 5. Ranken
-Score je Seite: Mention = 4, ownEdit = 2, keyword = 1, summiert über die Treffer-Signale.
-Mehrere Keyword-Treffer auf derselben Seite zählen weiterhin als **ein** keyword-Beitrag (= 1).
+Score je Seite: Mention = 4, ownEdit = 2, keyword = 1, person = 1, summiert über die
+Treffer-Signale. Mehrere Keyword-Treffer auf derselben Seite zählen weiterhin als **ein**
+keyword-Beitrag (= 1); ebenso zählen mehrere verfolgte Personen auf derselben Seite als **ein**
+person-Beitrag (= 1).
 Beispiele:
 - Mention + ownEdit = 6
 - nur Mention = 4
 - ownEdit + keyword = 3
+- ownEdit + person = 3
+- keyword + person = 2
 - nur ownEdit = 2
 - nur keyword = 1
+- nur person = 1
 
 Sekundärsortierung: Aktualität (Reihenfolge aus `ORDER BY lastmodified DESC`).
 
@@ -143,8 +166,10 @@ Schlägt der Fetch fehl (Rechte/gelöscht) → Eintrag ohne Summary, Notiz „In
 Einträge **jenseits** der Gruppen-Obergrenze werden NICHT geholt (nur Titel + Link + Datum).
 Ergänze je Seite die „Warum für dich"-Begründung aus den Treffer-Signalen
 (Mention → „Du wirst erwähnt", ownEdit → „Von dir mitbearbeitet",
-keyword → „Thema ‚<kw>'" – bei mehreren getroffenen Keywords diese aufzählen). In den Gruppen
-genügt das jeweilige Gruppensignal (bei „Deine Themen" das/die Keyword(s) angeben).
+keyword → „Thema ‚<kw>'" – bei mehreren getroffenen Keywords diese aufzählen,
+person → „Von <name> bearbeitet" – bei mehreren verfolgten Personen diese aufzählen). In den
+Gruppen genügt das jeweilige Gruppensignal (bei „Deine Themen" das/die Keyword(s) angeben, bei
+„Verfolgte Personen" den/die Namen).
 
 ### 8. Rendern (Markdown im Chat)
 
@@ -169,6 +194,10 @@ genügt das jeweilige Gruppensignal (bei „Deine Themen" das/die Keyword(s) ang
 - **<Titel>** · <space.name> · <lastModified> *(‚<kw>')*
   <2–3 Sätze Summary>
   🔗 <webUrl>
+### 👥 Verfolgte Personen
+- **<Titel>** · <space.name> · <lastModified> *(von <name>)*
+  <2–3 Sätze Summary>
+  🔗 <webUrl>
 ```
 
 (Einträge jenseits der Gruppen-Obergrenze ohne Summary: `- <Titel> · <space.name> · <lastModified> 🔗 <webUrl>`.)
@@ -176,10 +205,14 @@ genügt das jeweilige Gruppensignal (bei „Deine Themen" das/die Keyword(s) ang
 Regeln:
 - Jede Seite NUR EINMAL: als Highlight ODER in genau einer Gruppe.
   In der Gruppenliste zählt nur das **höchstpriore** Signal einer Seite.
-  Gruppen-Prioritätsreihenfolge: **Mentions > ownEdits > Themen (keyword)**.
+  Gruppen-Prioritätsreihenfolge: **Mentions > ownEdits > Themen (keyword) > Verfolgte Personen (person)**.
   Eine Seite landet also nur dann in „🏷️ Deine Themen", wenn ihr höchstpriores Signal ein
-  Keyword ist (sie also weder Mention noch ownEdit ist). Eine Mention+Keyword-Seite erscheint
-  ausschließlich unter Mentions. Die vollständige Mehrfach-Begründung erscheint nur bei den Highlights.
+  Keyword ist (sie also weder Mention noch ownEdit ist). Eine Seite landet nur dann in
+  „👥 Verfolgte Personen", wenn ihr höchstpriores Signal `person` ist (sie also weder Mention
+  noch ownEdit noch Keyword-Treffer ist). Eine Mention+Keyword-Seite erscheint
+  ausschließlich unter Mentions; eine von einer verfolgten Person bearbeitete Seite, die auch
+  Mention ist, bleibt unter Mentions. Die vollständige Mehrfach-Begründung erscheint nur bei
+  den Highlights.
 - Pro Gruppe bekommen die ersten `limits.groupSummaries` (Default 8) Einträge eine 2–3-Satz-Summary
   (Reihenfolge nach Ranking/Aktualität); weitere Einträge derselben Gruppe nur Titel + Link + Datum.
   Sind in einer Gruppe Einträge ohne Summary übrig, hänge ans Gruppenende
