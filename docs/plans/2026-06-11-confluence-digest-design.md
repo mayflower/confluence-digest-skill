@@ -187,6 +187,13 @@ Render-Funktion bleibt, nur Ausgabeziel wechselt.
 - Jede:r bekommt beim ersten Lauf eigene Config + auto-erkannte Account-ID.
 - Voraussetzung dokumentieren: eigener `atlassian-mayflower`-MCP eingerichtet & authentifiziert.
 
+## Bekannte Einschränkungen / Backlog
+
+- **„zuletzt von" zeigt die Ersteller:in, nicht die letzte bearbeitende Person.** Stufe 1 nutzt
+  `history.createdBy.displayName`. Die letzte Änderung steckt in `version.authorId` (nur ID, kein
+  Name in der Such-Antwort). Verbesserung (Stufe 1.5/2): `version.authorId` zu einem Namen auflösen
+  und als echtes „zuletzt geändert von" anzeigen. Live bestätigt am 2026-06-11.
+
 ## Offene Punkte für die Implementierung
 
 - Genaue CQL-Unterstützung von `mention` und `contributor` gegen die reale Instanz verifizieren
