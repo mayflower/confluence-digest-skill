@@ -34,8 +34,8 @@ Drei klar getrennte Bausteine (Trennung ist Voraussetzung für die spätere Vert
    (Mentions + eigene Bearbeitungen). Mini-Onboarding: Identität automatisch erkennen, Config schreiben.
 2. **Stufe 1.5:** Erststart-Hybrid-Interview + Keyword-Signal. Aktivitäts-Analyse schlägt Keywords vor,
    Nutzer:in bestätigt/ergänzt; Keywords fließen in den Digest. `setup`-Befehl zum Re-Konfigurieren.
-3. **Stufe 2:** Personen/Teams-Signal (inkl. Personen-Teil des Interviews), geplanter Lauf (Cloud-Agent),
-   Ausgabe als Datei/Confluence-Seite.
+3. **Stufe 2:** Personen-Signal (inkl. Personen-Teil des Interviews), geplanter Lauf (Cloud-Agent),
+   Ausgabe als Datei/Confluence-Seite. (Teams gestrichen – werden bei Mayflower nicht in Confluence gepflegt.)
 4. **Stufe 3 (Vision):** macOS-Desktop-App auf Basis derselben Logik.
 
 ## Konfiguration

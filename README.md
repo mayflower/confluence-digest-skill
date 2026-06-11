@@ -67,7 +67,7 @@ Voraussetzung: eigener authentifizierter `atlassian-mayflower`-MCP.
    Bearbeitungen) + Mini-Onboarding (Identität automatisch erkennen).
 2. **Stufe 1.5:** Erststart-Hybrid-Interview + Keyword-Signal, `setup`-Befehl zum Re-Konfigurieren.
    ✅ implementiert.
-3. **Stufe 2:** Personen/Teams-Signal, geplanter Lauf, Ausgabe als Datei/Confluence-Seite.
+3. **Stufe 2:** Personen-Signal (verfolgte Kolleg:innen), geplanter Lauf, Ausgabe als Datei/Confluence-Seite.
 4. **Stufe 3:** macOS-Desktop-App auf Basis derselben Logik.
 
 ## Design-Eckpunkte (Stand Brainstorming)
