@@ -55,9 +55,62 @@ Alle anderen Argumente (`<Fenster>`, `--dry-run`, kein Argument) laufen wie unte
 - Merke dir das gewählte Fenster als Label für die Ausgabe. Labeling-Regel:
   - Standard 24h → „letzte 24h"; Montags-Standard 72h → „Fr–Mo".
   - Sonst ohne Spezial-Label: bei `Nh` → „letzte N Stunden", bei `Nd` → „letzte N Tage".
+- **Fenstergröße in Stunden** bestimmen (für die Modus-Wahl):
+  Standard 24h → `24`; Montags-Default → `72`; Override `Nh` → `N`; `Nd` → `N·24`.
+- **Ausführungsmodus** ableiten:
+  - **> 72h → Fan-out-Modus** (Such-Queries und Summaries laufen über Subagenten, siehe §3/§7).
+  - **≤ 72h → Inline-Modus** (alles direkt im Haupt-Agenten, wie bisher).
+  - **`--dry-run` ist IMMER Inline-Modus** (braucht nur CQL + `totalSize`, kein Fan-out, keine Inhalte) –
+    unabhängig von der Fenstergröße.
 - Bei `--dry-run`: Argument-Parsing identisch, nur spätere Schritte unterscheiden sich.
 
 ### 3. Relevante Seiten holen
+
+**Ausführungsmodus** (aus §2; die konkreten CQL-Strings je Signal weiter unten bleiben in **beiden**
+Modi identisch – nur die *Ausführung* unterscheidet sich):
+
+- **Inline-Modus (≤ 72h):** Führe die CQL-Abfragen je Signal direkt via
+  `mcp__atlassian-mayflower__searchConfluenceUsingCql` aus (dürfen in einem Turn parallel abgesetzt
+  werden) – wie bisher. Lies die Felder selbst nach der Feld-Mapping-Tabelle weiter unten.
+- **Fan-out-Modus (> 72h):** Für **jede** aktive Signal-Query (mentions, ownEdits, **je**
+  `signals.keywords`-Eintrag, **je** `signals.titleKeywords`-Eintrag, **je** `signals.people`-Eintrag)
+  starte **genau einen** Subagenten via dem Agent/Task-Tool (`subagent_type: general-purpose`). Der
+  Subagent:
+  1. lädt das MCP-Tool via `ToolSearch` (`select:mcp__atlassian-mayflower__searchConfluenceUsingCql`),
+  2. führt **exakt dieselbe CQL** für genau dieses eine Signal aus (cloudId aus Config, `limit (= 50)`,
+     Fenster aus Schritt 2 – die CQL-Strings weiter unten gelten unverändert),
+  3. mappt die Felder selbst nach der Feld-Mapping-Tabelle weiter unten und gibt **ausschließlich** das
+     unten definierte **kompakte Rückgabe-Schema** zurück – **niemals** rohes JSON.
+
+  Die Subagenten der einzelnen Signale sind unabhängig und sollten parallel gestartet werden.
+  **Merge/Dedupe (§4) und Ranking (§5) laufen danach unverändert im Haupt-Agenten** auf diesen
+  kompakten Rückgaben (Schlüssel = `id`; Signale aggregieren; Scores wie gehabt
+  Mention = 4 / ownEdit = 2 / keyword = 1 / person = 1).
+
+**Fixes Rückgabe-Schema des Such-Subagenten (Fan-out-Modus):**
+
+```
+signal: <mentions | ownEdits | keyword:<kw> | titleKeyword:<kw> | person:<name>>
+totalSize: <Gesamtzahl>
+id | title | space | author | friendlyLastModified | url(absolut) | type
+<id> | <Titel> | <Space> | <Autor> | <relatives Datum> | <absolute URL> | <page|blogpost>
+... (eine Zeile je Treffer)
+```
+
+- `signal` benennt das auslösende Signal eindeutig: `mentions`, `ownEdits`, `keyword:<kw>` (für
+  `signals.keywords`-Einträge), `titleKeyword:<kw>` (für `signals.titleKeywords`-Einträge) oder
+  `person:<name>` (Config-`name`, nicht die `id`).
+- Die Spalten je Treffer entsprechen der Feld-Mapping-Tabelle weiter unten:
+  `space = resultGlobalContainer.title`, `author = content.history.createdBy.displayName`,
+  `url(absolut) = _links.base + <item>.url`, `type = page|blogpost`. Der Subagent wendet dieses
+  Mapping **selbst** an und gibt nur die fertigen Spaltenwerte zurück.
+- **Fehler im Fan-out:** Schlägt die Query eines Subagenten fehl oder liefert sie leer, meldet der
+  Subagent das kompakt (z.B. `totalSize: 0` bzw. eine kurze Fehlernotiz statt Trefferzeilen); der
+  Haupt-Agent verarbeitet die übrigen Subagenten-Rückgaben normal weiter (analog der bestehenden
+  „einzelne CQL-Abfrage fehlgeschlagen"-Regel in der Fehlerbehandlung).
+
+---
+
 Für jedes aktive Signal eine CQL-Abfrage via `mcp__atlassian-mayflower__searchConfluenceUsingCql`
 (cloudId aus Config), `limit (= 50)`, jeweils mit dem Fenster aus Schritt 2:
 
