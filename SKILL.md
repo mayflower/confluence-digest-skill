@@ -37,9 +37,9 @@ Alle anderen Argumente (`<Fenster>`, `--dry-run`, kein Argument) laufen wie unte
 - **Fehlt sie (NEUE Nutzer:in):** Begrüße kurz, erzeuge `config.local.yaml` aus
   `config.example.yaml`. Führe dann **das volle Onboarding-Interview** aus dem Abschnitt
   „## setup / Onboarding-Interview" durch (Identitätsbestätigung via `atlassianUserInfo`
-  inkl. Rückschreiben von `accountId: <account_id>` **und** der Keyword-Schritt). Das ersetzt
-  das frühere Mini-Onboarding der Stufe 1. Im Anschluss bietet das Interview an, direkt einen
-  Digest zu laufen.
+  inkl. Rückschreiben von `accountId: <account_id>`, der Keyword-Schritt **und** der
+  Personen-Schritt). Das ersetzt das frühere Mini-Onboarding der Stufe 1. Im Anschluss bietet
+  das Interview an, direkt einen Digest zu laufen.
 - **Existiert sie:** lade Werte. Steht `accountId: auto`, einmalig via `atlassianUserInfo`
   auflösen und zurückschreiben. Fehlt der Schlüssel `onboarding` (Bestandsconfig aus Stufe 1),
   behandle `onboarding.hintShown` als `false`.
@@ -245,9 +245,9 @@ bei nicht-leerer `signals.titleKeywords`: je Eintrag das `title ~`-CQL plus Gesa
 ## setup / Onboarding-Interview
 Wird ausgelöst durch `/confluence-digest setup` **oder** beim Erststart einer neuen Nutzer:in
 (§1, fehlende `config.local.yaml`). Ziel: die Keyword-Listen `signals.keywords` (Volltext) und
-`signals.titleKeywords` (nur Titel) in `config.local.yaml` pflegen.
-Stufe 1.5 deckt im Interview **nur Keywords** ab (+ Identitätsbestätigung); der Personen-Teil
-ist Stufe 2.
+`signals.titleKeywords` (nur Titel) **sowie** die verfolgten Personen `signals.people`
+(`{name, id}`) in `config.local.yaml` pflegen.
+Das Interview deckt also **Keywords UND Personen** ab (+ Identitätsbestätigung).
 
 **1. Identität bestätigen.** Rufe `mcp__atlassian-mayflower__atlassianUserInfo` auf, lies
 `account_id` + `name`. Schreibe `accountId: <account_id>` in `config.local.yaml` (ersetzt `auto`)
@@ -275,12 +275,27 @@ Auswahl ist erlaubt. Weise kurz auf die zwei Match-Arten hin und lass pro Keywor
 (schmal, gut für breite Orts-/Adressbegriffe wie den eigenen Standort) → `signals.titleKeywords`.
 Im Zweifel Volltext.
 
-**4. Ergebnis speichern.** Schreibe die gewählten Keywords je nach Match-Art nach
-`signals.keywords` (Volltext) bzw. `signals.titleKeywords` (nur Titel) in `config.local.yaml`
+**4. Personen-Schritt.** Frage, welche Kolleg:innen verfolgt werden sollen (frei, optional;
+eine **leere** Auswahl ist erlaubt – dann bleibt `signals.people` leer).
+- **Optionaler Vorschlag:** Leite aus der Aktivitäts-Analyse von Schritt 2 (die mention-/ownEdit-
+  Treffer wurden dort bereits geholt) häufige Mit-Autor:innen ab: zähle über alle Treffer die
+  `content.history.createdBy.displayName` (rohes Format) bzw. `author.displayName` (vereinfachtes
+  Format), **ohne dich selbst** (eigener `name`/`accountId`), und biete die häufigsten als
+  Kandidat:innen an. (Diese Quelle ist sparse/optional – ist nichts ableitbar, einfach frei fragen.)
+- Pro genannter Person rufe `mcp__atlassian-mayflower__lookupJiraAccountId` auf (cloudId aus Config,
+  `searchString = <name>`). Bei **genau einem** Treffer in `data.users.users[]` direkt übernehmen;
+  bei **mehreren** Treffern die Auswahl (mit `displayName`/E-Mail) bestätigen lassen; bei **keinem**
+  Treffer Hinweis und Person überspringen. Sammle die bestätigten Personen als `{name, id}`
+  (`id = accountId`).
+
+**5. Ergebnis speichern.** Schreibe die gewählten Keywords je nach Match-Art nach
+`signals.keywords` (Volltext) bzw. `signals.titleKeywords` (nur Titel) und die gewählten Personen
+als `{name, id}`-Einträge nach `signals.people` in `config.local.yaml`
 und setze `onboarding.hintShown: true` (Schlüssel `onboarding` anlegen, falls er fehlt). Damit
 erscheint der Setup-Hinweis aus §8 künftig nicht mehr.
 
-**5. Direkt loslaufen.** Biete an, sofort einen Digest zu laufen
+**6. Direkt loslaufen.** Biete an, sofort einen Digest zu laufen
 (normaler Ablauf ab §2 mit Standardfenster). Bei Zustimmung ausführen, sonst beenden.
 Der unmittelbar danach angebotene Digest-Lauf verwendet die soeben geschriebenen Config-Werte
-(Keywords in `signals.keywords`/`signals.titleKeywords` + `onboarding.hintShown: true`).
+(Keywords in `signals.keywords`/`signals.titleKeywords`, Personen in `signals.people`
++ `onboarding.hintShown: true`).
