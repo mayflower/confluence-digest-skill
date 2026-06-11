@@ -17,7 +17,8 @@ Cross-space (kein fixer Space-Filter), getrieben von drei Signalen:
 - **Themen/Keywords** – Volltext-Treffer zu konfigurierten Begriffen, egal in welchem Space.
 - **Personen/Teams** – Aktivität bestimmter verfolgter Kolleg:innen.
 
-Stufe 1 aktiviert nur „mich betreffend" (braucht keine Pflege, funktioniert sofort).
+Stufe 1 aktiviert nur „mich betreffend" (braucht keine Pflege, funktioniert sofort). Keywords kommen
+mit dem Onboarding-Interview in Stufe 1.5, Personen/Teams in Stufe 2 (siehe Ausbaustufen & Onboarding).
 
 ## Architektur
 
@@ -29,9 +30,13 @@ Drei klar getrennte Bausteine (Trennung ist Voraussetzung für die spätere Vert
 
 ### Ausbaustufen
 
-1. **Jetzt:** Slash-Command `/confluence-digest`, Ausgabe im Chat, Relevanz = „mich betreffend".
-2. **Später:** Keywords-/Personen-Signale, geplanter Lauf (Cloud-Agent), Ausgabe als Datei/Confluence-Seite.
-3. **Vision:** macOS-Desktop-App auf Basis derselben Logik.
+1. **Stufe 1 (jetzt):** Slash-Command `/confluence-digest`, Ausgabe im Chat, Relevanz = „mich betreffend"
+   (Mentions + eigene Bearbeitungen). Mini-Onboarding: Identität automatisch erkennen, Config schreiben.
+2. **Stufe 1.5:** Erststart-Hybrid-Interview + Keyword-Signal. Aktivitäts-Analyse schlägt Keywords vor,
+   Nutzer:in bestätigt/ergänzt; Keywords fließen in den Digest. `setup`-Befehl zum Re-Konfigurieren.
+3. **Stufe 2:** Personen/Teams-Signal (inkl. Personen-Teil des Interviews), geplanter Lauf (Cloud-Agent),
+   Ausgabe als Datei/Confluence-Seite.
+4. **Stufe 3 (Vision):** macOS-Desktop-App auf Basis derselben Logik.
 
 ## Konfiguration
 
@@ -43,7 +48,7 @@ accountId: auto                 # beim 1. Lauf via atlassianUserInfo gesetzt
 signals:
   mentions: true                # Seiten, in denen ich erwähnt werde
   ownEdits: true                # Seiten, die ich mit-bearbeitet habe
-  keywords: []                  # z.B. ["Symfony", "DSGVO"] – Stufe 2, leer startend
+  keywords: []                  # z.B. ["Symfony", "DSGVO"] – per Onboarding befüllt (Stufe 1.5)
   people:   []                  # Namen/Account-IDs verfolgter Personen – Stufe 2
 limits:
   maxSummaries: 8               # Obergrenze KI-zusammengefasster Seiten pro Lauf
@@ -61,6 +66,36 @@ Jeweils kombiniert mit `lastmodified >= <Fensterstart>` und `type = page`:
 | Personen             | `contributor in ("<id1>","<id2>")`    |
 
 **Teams** sind in CQL nicht direkt filterbar → später zu Mitglieds-Account-IDs auflösen (Stufe 2).
+
+## Erststart-Onboarding (Interview)
+
+Statt einer leeren Config wird beim Erststart ein geführtes Interview die Config befüllen – senkt
+die Einstiegshürde, besonders für die spätere Verteilung an Kolleg:innen. Manuelles Editieren bleibt
+parallel möglich.
+
+**Trigger:** Kein Config-File vorhanden → vor dem ersten Digest läuft das Interview.
+
+**Ablauf (hybrid – Vorschläge aus Aktivität + freie Ergänzung):**
+
+1. Begrüßung; `accountId` via `atlassianUserInfo` ermitteln und bestätigen lassen („Du bist \<Name\>?").
+2. **Aktivitäts-Analyse** (MCP): Mentions + eigene Bearbeitungen der letzten ~30–90 Tage abrufen →
+   daraus ableiten: häufige Mit-Autor:innen (Personen-Vorschläge) und häufige Begriffe aus
+   Titeln/Labels (Keyword-Vorschläge).
+3. **Dialog:** „Vorgeschlagene Themen: […] – welche übernehmen? Weitere ergänzen?"; analog für Personen.
+   Nutzer:in bestätigt/korrigiert/ergänzt frei.
+4. Defaults: `mentions`/`ownEdits` = an, `maxSummaries` = Standard.
+5. Config schreiben, dann **direkt ersten Digest anbieten**.
+
+**Re-Konfiguration:** `/confluence-digest setup` führt das Interview erneut (aktuelle Werte als
+Default); die Config-Datei bleibt frei editierbar.
+
+**Edge Cases:** Aktivitäts-Analyse leer (neue/wenig aktive Person) → elegant auf „nur fragen"
+zurückfallen, Vorschläge entfallen. Abbruch → Minimal-Config (nur `mentions`/`ownEdits`), später
+per `setup` ergänzbar.
+
+**Staffelung:** Stufe 1 enthält nur das Mini-Onboarding (Identität erkennen + Config schreiben).
+Das volle Hybrid-Interview liefert Mehrwert erst mit den Keyword-Signalen → kommt in **Stufe 1.5**
+(Keywords), der Personen-Teil des Interviews folgt mit **Stufe 2**.
 
 ## Ablauf
 

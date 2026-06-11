@@ -8,9 +8,11 @@ org-weit kürzlich geänderte, für dich relevante Seiten findet und einen prior
 
 ## Geplante Ausbaustufen
 
-1. Slash-Command, Ausgabe im Chat, Relevanz = „mich betreffend" (Mentions + eigene Bearbeitungen).
-2. Keywords-/Personen-Signale, geplanter Lauf, Ausgabe als Datei/Confluence-Seite.
-3. macOS-Desktop-App auf Basis derselben Logik.
+1. **Stufe 1:** Slash-Command, Ausgabe im Chat, Relevanz = „mich betreffend" (Mentions + eigene
+   Bearbeitungen) + Mini-Onboarding (Identität automatisch erkennen).
+2. **Stufe 1.5:** Erststart-Hybrid-Interview + Keyword-Signal, `setup`-Befehl zum Re-Konfigurieren.
+3. **Stufe 2:** Personen/Teams-Signal, geplanter Lauf, Ausgabe als Datei/Confluence-Seite.
+4. **Stufe 3:** macOS-Desktop-App auf Basis derselben Logik.
 
 ## Design-Eckpunkte (Stand Brainstorming)
 
