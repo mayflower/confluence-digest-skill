@@ -106,7 +106,7 @@ die noch keine Keywords gesetzt haben.
 
 Den Ordner **ohne** `config.local.yaml` weitergeben (z.B. Repo klonen oder Ordner kopieren),
 dann denselben Symlink setzen. Jede:r bekommt beim ersten Lauf die eigene Config + Account-ID.
-Voraussetzung: eigener authentifizierter `atlassian-mayflower`-MCP.
+Voraussetzung: ein eigener authentifizierter Atlassian-MCP-Server (Name in `config.local.yaml` unter `mcpServer`).
 
 ## Geplante Ausbaustufen
 

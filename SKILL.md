@@ -46,7 +46,8 @@ Alle anderen Argumente (`<Fenster>`, `--dry-run`, kein Argument) laufen wie unte
   das Interview an, direkt einen Digest zu laufen.
 - **Existiert sie:** lade Werte. Steht `accountId: auto`, einmalig via `atlassianUserInfo`
   auflösen und zurückschreiben. Fehlt der Schlüssel `onboarding` (Bestandsconfig aus Stufe 1),
-  behandle `onboarding.hintShown` als `false`.
+  behandle `onboarding.hintShown` als `false`. Fehlt der Schlüssel `mcpServer` (Bestandsconfig vor
+  Stufe 2a), nutze den Default `atlassian-mayflower`.
 - Der aufgelöste `accountId` wird **für spätere Stufen** gespeichert; Stufe 1 nutzt in der CQL
   `currentUser()` und verbraucht ihn nicht.
 - Schlägt `atlassianUserInfo` fehl → siehe Abschnitt Fehlerbehandlung.
