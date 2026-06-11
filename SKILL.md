@@ -57,14 +57,29 @@ Für jedes aktive Signal eine CQL-Abfrage via `mcp__atlassian-mayflower__searchC
 
 (Nur Signale ausführen, die in der Config `true` sind.)
 
-Aus jedem `content.nodes[]`-Eintrag liest du: `id`, `title`, `space.name`, `author.displayName`,
-`lastModified`, `webUrl`; zusätzlich je Query `content.totalCount`.
+**Antwort-Format (wichtig – nach Bedeutung mappen, nicht auf einen festen Pfad verlassen):**
+`searchConfluenceUsingCql` liefert je nach Fall eine von zwei Formen. Lies die Felder nach
+folgender Bedeutung, und nutze pro Feld den ersten vorhandenen Pfad:
+
+| Bedeutung | Pfad (rohes Search-Format) | Pfad (vereinfachtes Format) |
+|-----------|----------------------------|------------------------------|
+| Trefferliste | `results[]` | `content.nodes[]` |
+| Gesamtzahl | `totalSize` | `content.totalCount` |
+| Seiten-ID | `<item>.content.id` | `<item>.id` |
+| Titel | `<item>.title` | `<item>.title` |
+| Space-Name | `<item>.resultGlobalContainer.title` | `<item>.space.name` |
+| Autor/letzte:r Bearbeiter:in | `<item>.content.history.createdBy.displayName` | `<item>.author.displayName` |
+| relatives Datum | `<item>.friendlyLastModified` | `<item>.lastModified` |
+| URL | `_links.base` + `<item>.url` (relativ → absolut) | `<item>.webUrl` |
+
+Die absolute URL im rohen Format = `_links.base` (z.B. `https://mayflowergmbh.atlassian.net/wiki`)
++ `<item>.url`.
 
 ### 4. Mergen & dedupen
-- Sammle alle `content.nodes[]`. Schlüssel = `id`.
+- Sammle alle Treffer beider Abfragen. Schlüssel = Seiten-ID.
 - Pro Seite merke die Menge der Treffer-Signale (eine Seite kann mention UND ownEdit sein).
-- Merke je Query `content.totalCount`; bei `totalCount > limit` für die Volumen-Notiz vormerken
-  (`N = totalCount - limit`, also `totalCount - 50`).
+- Merke je Query die Gesamtzahl (`totalSize` bzw. `content.totalCount`); ist sie `> limit`,
+  für die Volumen-Notiz vormerken (`N = Gesamtzahl - limit`, also `Gesamtzahl - 50`).
 
 ### 5. Ranken
 Score je Seite: Mention = 2, ownEdit = 1, summiert über die Treffer-Signale
@@ -116,7 +131,7 @@ Regeln:
   die vollständige Mehrfach-Begründung erscheint nur bei den Highlights.
 - Die Gruppenliste enthält **nie** Zusammenfassungen – nur Titel + Link + relatives Datum.
 - Leere Gruppen weglassen. Gar nichts → „🟢 Nichts Neues im Zeitraum (<Label>)."
-- Volumen-Notiz anhängen, wo `totalCount > limit`: „(+N weitere – Fenster ggf. zu groß)".
+- Volumen-Notiz anhängen, wo die Gesamtzahl `> limit`: „(+N weitere – Fenster ggf. zu groß)".
 
 ## Fehlerbehandlung
 - MCP `atlassian-mayflower` nicht verbunden / Auth-Fehler → klare Meldung:
@@ -125,5 +140,5 @@ Regeln:
 - Einzelne CQL-Abfrage schlägt fehl → überspringen, Hinweis, restliche Signale weiterverarbeiten.
 
 ## --dry-run
-Schritte 1–6 normal, aber statt Schritt 7/8: gib pro Signal das CQL und `totalCount` aus,
+Schritte 1–6 normal, aber statt Schritt 7/8: gib pro Signal das CQL und die Gesamtzahl aus,
 plus die gerankte Trefferliste (Titel + Signale), ohne Seiten zu holen oder zusammenzufassen.
