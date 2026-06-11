@@ -36,6 +36,11 @@ Drei klar getrennte Bausteine (Trennung ist Voraussetzung für die spätere Vert
    Nutzer:in bestätigt/ergänzt; Keywords fließen in den Digest. `setup`-Befehl zum Re-Konfigurieren.
 3. **Stufe 2:** Personen-Signal (inkl. Personen-Teil des Interviews), geplanter Lauf (Cloud-Agent),
    Ausgabe als Datei/Confluence-Seite. (Teams gestrichen – werden bei Mayflower nicht in Confluence gepflegt.)
+   - **Subagenten-Fan-out für große Fenster (> 72h): ✅ umgesetzt** – Such-Queries und
+     Seiten-Zusammenfassungen werden je Query bzw. je Seite an einen Subagenten ausgelagert (kompakte
+     Rückgabe, schlanker Hauptkontext, nebenläufig); ≤ 72h und `--dry-run` bleiben inline. Merge/Dedupe/
+     Ranking bleiben zentral. Plan: `docs/plans/2026-06-11-confluence-digest-subagent-fanout-plan.md`.
+     Der geplante Lauf (Cloud-Agent) bleibt zurückgestellt (Stufe 2b).
 4. **Stufe 3 (Vision):** macOS-Desktop-App auf Basis derselben Logik.
 
 ## Konfiguration

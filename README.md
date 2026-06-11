@@ -52,6 +52,22 @@ jeder weitere Gruppen-Eintrag eine kurze (2–3 Sätze). Pro Gruppe ist die Zahl
 `limits.groupSummaries` gedeckelt (Default 8); darüber hinaus nur Titel + Link. `limits.highlights`
 (Default 5) steuert die Zahl der ausführlichen Highlights.
 
+### Ausführungsmodus
+
+Die Skill wählt den Ausführungsmodus automatisch anhand der Fenstergröße:
+
+- **≤ 72h (Standard 24h, montags 72h) → Inline:** Such-Queries und Zusammenfassungen laufen direkt
+  im Haupt-Agenten – wie gehabt.
+- **> 72h (z.B. `7d` nach Urlaub) → Subagenten-Fan-out:** Jede Such-Query und jede zu summende Seite
+  wird an einen eigenen Subagenten ausgelagert, der nur ein kompaktes Ergebnis zurückgibt. So bleibt
+  der Hauptkontext schlank (die großen Rohantworten bleiben im Subagent-Kontext) und die Läufe sind
+  nebenläufig. Merge, Dedupe und Ranking bleiben zentral im Haupt-Agenten.
+
+`--dry-run` läuft **immer inline** (nur CQL + Trefferzahlen, kein Fan-out).
+
+**Voraussetzung für den Fan-out:** Die Agent/Task-Fähigkeit (Subagenten) muss in deinem Claude Code
+verfügbar sein.
+
 ### Eigene Themen (Keyword-Signal)
 
 Neben „mich betreffend" (Mentions + eigene Bearbeitungen) kannst du **eigene Themen** als

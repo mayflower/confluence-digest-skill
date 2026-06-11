@@ -320,6 +320,9 @@ Regeln:
 - Einzelne CQL-Abfrage schlägt fehl → überspringen, Hinweis, restliche Signale weiterverarbeiten.
 
 ## --dry-run
+`--dry-run` läuft **immer inline** (auch bei Fenstern > 72h) – kein Subagenten-Fan-out: Es braucht
+nur das CQL je Signal und die Gesamtzahl (`totalSize`), aber keine Seiteninhalte.
+
 Schritte 1–6 normal, aber statt Schritt 7/8: gib pro Signal das CQL und die Gesamtzahl aus,
 plus die gerankte Trefferliste (Titel + Signale), ohne Seiten zu holen oder zusammenzufassen.
 Bei nicht-leerer `signals.keywords`: je Eintrag das `text ~`-CQL plus Gesamtzahl ausgeben;
