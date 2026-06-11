@@ -18,7 +18,12 @@ auf `mayflowergmbh`. Stufe 1 = Signal „mich betreffend" (Mentions + eigene Bea
 /confluence-digest            → Standardfenster (24h; montags 72h)
 /confluence-digest <Fenster>  → Override-Fenster `Nh`/`Nd` (z.B. 24h, 72h, 7d – etwa nach Urlaub)
 /confluence-digest --dry-run  → nur CQL + Trefferzahlen, ohne Inhalte/Zusammenfassungen
+/confluence-digest setup      → Onboarding-Interview: eigene Themen (Keywords) pflegen
 ```
+
+**Argument-Routing:** Lautet das Argument `setup`, springe direkt in den Abschnitt
+„## setup / Onboarding-Interview" und führe **nicht** den normalen Digest-Ablauf aus.
+Alle anderen Argumente (`<Fenster>`, `--dry-run`, kein Argument) laufen wie unten beschrieben.
 
 ## Ablauf
 
@@ -28,12 +33,15 @@ auf `mayflowergmbh`. Stufe 1 = Signal „mich betreffend" (Mentions + eigene Bea
   **neben `SKILL.md` im aufgelösten echten Verzeichnis** (z.B. via `realpath`), damit die Datei
   im gitignored Repo landet und nicht im Symlink-Pfad.
 - Prüfe, ob `config.local.yaml` dort existiert.
-- **Fehlt sie:** Begrüße kurz, rufe `mcp__atlassian-mayflower__atlassianUserInfo` auf,
-  lies `account_id` + `name`. Erzeuge `config.local.yaml` aus `config.example.yaml`
-  mit `accountId: <account_id>`. Bestätige der Nutzer:in: „Eingerichtet als <name>."
-  (KEIN Themen-Interview – das ist Stufe 1.5.)
-- **Existiert sie:** lade Werte. Steht `accountId: auto`, einmalig wie oben auflösen und
-  zurückschreiben.
+- **Fehlt sie (NEUE Nutzer:in):** Begrüße kurz, erzeuge `config.local.yaml` aus
+  `config.example.yaml`. Führe dann **das volle Onboarding-Interview** aus dem Abschnitt
+  „## setup / Onboarding-Interview" durch (Identitätsbestätigung via `atlassianUserInfo`
+  inkl. Rückschreiben von `accountId: <account_id>` **und** der Keyword-Schritt). Das ersetzt
+  das frühere Mini-Onboarding der Stufe 1. Im Anschluss bietet das Interview an, direkt einen
+  Digest zu laufen.
+- **Existiert sie:** lade Werte. Steht `accountId: auto`, einmalig via `atlassianUserInfo`
+  auflösen und zurückschreiben. Fehlt der Schlüssel `onboarding` (Bestandsconfig aus Stufe 1),
+  behandle `onboarding.hintShown` als `false`.
 - Der aufgelöste `accountId` wird **für spätere Stufen** gespeichert; Stufe 1 nutzt in der CQL
   `currentUser()` und verbraucht ihn nicht.
 - Schlägt `atlassianUserInfo` fehl → siehe Abschnitt Fehlerbehandlung.
@@ -57,6 +65,14 @@ Für jedes aktive Signal eine CQL-Abfrage via `mcp__atlassian-mayflower__searchC
 
 (Nur Signale ausführen, die in der Config `true` sind.)
 
+**Keyword-Signal (Stufe 1.5):** Ist `signals.keywords` true **und** die Liste `keywords` nicht
+leer, führe **pro Keyword eine eigene** CQL-Abfrage aus (Volltext-Match, auch im Body):
+
+- keyword: `text ~ "<kw>" AND type = page AND lastmodified >= now("<FENSTER>") ORDER BY lastmodified DESC`
+
+ebenfalls `limit (= 50)` und dasselbe Fenster aus Schritt 2; `expand` ist hier nicht nötig.
+Ist `keywords` leer (oder `signals.keywords` false), entfällt dieser Schritt vollständig.
+
 **Antwort-Format (wichtig – nach Bedeutung mappen, nicht auf einen festen Pfad verlassen):**
 `searchConfluenceUsingCql` liefert je nach Fall eine von zwei Formen. Lies die Felder nach
 folgender Bedeutung, und nutze pro Feld den ersten vorhandenen Pfad:
@@ -76,15 +92,26 @@ Die absolute URL im rohen Format = `_links.base` (z.B. `https://mayflowergmbh.at
 + `<item>.url`.
 
 ### 4. Mergen & dedupen
-- Sammle alle Treffer beider Abfragen. Schlüssel = Seiten-ID.
-- Pro Seite merke die Menge der Treffer-Signale (eine Seite kann mention UND ownEdit sein).
+- Sammle alle Treffer aller Abfragen (mentions, ownEdits, je Keyword). Schlüssel = Seiten-ID.
+- Pro Seite merke die Menge der Treffer-Signale (eine Seite kann mehrere Signale tragen, z.B.
+  mention UND ownEdit UND keyword).
+- Keyword-Treffer mit dem Signal `keyword` vermerken **plus, welches Keyword** sie ausgelöst hat
+  (eine Seite kann von mehreren Keywords getroffen werden → alle merken).
 - Merke je Query die Gesamtzahl (`totalSize` bzw. `content.totalCount`); ist sie `> limit`,
-  für die Volumen-Notiz vormerken (`N = Gesamtzahl - limit`, also `Gesamtzahl - 50`).
+  für die Volumen-Notiz vormerken (`N = Gesamtzahl - limit`, also `Gesamtzahl - 50`). Das gilt
+  je mention-/ownEdit-Query **und je Keyword-Query** (Gesamtzahl pro Keyword separat führen).
 
 ### 5. Ranken
-Score je Seite: Mention = 2, ownEdit = 1, summiert über die Treffer-Signale
-(Mention+ownEdit = 3 > nur Mention = 2 > nur ownEdit = 1). Sekundärsortierung: Aktualität
-(Reihenfolge aus `ORDER BY lastmodified DESC`).
+Score je Seite: Mention = 4, ownEdit = 2, keyword = 1, summiert über die Treffer-Signale.
+Mehrere Keyword-Treffer auf derselben Seite zählen weiterhin als **ein** keyword-Beitrag (= 1).
+Beispiele:
+- Mention + ownEdit = 6
+- nur Mention = 4
+- ownEdit + keyword = 3
+- nur ownEdit = 2
+- nur keyword = 1
+
+Sekundärsortierung: Aktualität (Reihenfolge aus `ORDER BY lastmodified DESC`).
 
 ### 6. Highlights bestimmen
 - Bestimme die Zahl der Highlights `H`: die Top 5 (oder alle, falls weniger als 5 Treffer),
@@ -104,7 +131,8 @@ holen und 2–4 Sätze zusammenfassen: worum geht es / was ist der aktuelle Stan
 Versions-Diff verfügbar → Stand beschreiben, nicht „diese Zeilen kamen dazu".
 Schlägt der Fetch fehl (Rechte/gelöscht) → Seite ohne Zusammenfassung, mit Notiz „Inhalt nicht abrufbar".
 Ergänze je Seite die „Warum für dich"-Begründung aus den Treffer-Signalen
-(Mention → „Du wirst erwähnt", ownEdit → „Von dir mitbearbeitet").
+(Mention → „Du wirst erwähnt", ownEdit → „Von dir mitbearbeitet",
+keyword → „Thema ‚<kw>'" – bei mehreren getroffenen Keywords diese aufzählen).
 
 ### 8. Rendern (Markdown im Chat)
 
@@ -123,15 +151,28 @@ Ergänze je Seite die „Warum für dich"-Begründung aus den Treffer-Signalen
 - <Titel> · <space.name> · <lastModified> 🔗 <webUrl>
 ### ✏️ Von dir mitbearbeitet
 - ...
+### 🏷️ Deine Themen
+- <Titel> · <space.name> · <lastModified> 🔗 <webUrl>
 ```
 
 Regeln:
-- Jede Seite NUR EINMAL: als Highlight ODER in genau einer Gruppe (höchste Priorität: Mentions vor ownEdits).
-  In der Gruppenliste zählt nur das höchstpriore Signal einer Seite (Mentions vor ownEdits);
-  die vollständige Mehrfach-Begründung erscheint nur bei den Highlights.
+- Jede Seite NUR EINMAL: als Highlight ODER in genau einer Gruppe.
+  In der Gruppenliste zählt nur das **höchstpriore** Signal einer Seite.
+  Gruppen-Prioritätsreihenfolge: **Mentions > ownEdits > Themen (keyword)**.
+  Eine Seite landet also nur dann in „🏷️ Deine Themen", wenn ihr höchstpriores Signal ein
+  Keyword ist (sie also weder Mention noch ownEdit ist). Eine Mention+Keyword-Seite erscheint
+  ausschließlich unter Mentions. Die vollständige Mehrfach-Begründung erscheint nur bei den Highlights.
 - Die Gruppenliste enthält **nie** Zusammenfassungen – nur Titel + Link + relatives Datum.
 - Leere Gruppen weglassen. Gar nichts → „🟢 Nichts Neues im Zeitraum (<Label>)."
 - Volumen-Notiz anhängen, wo die Gesamtzahl `> limit`: „(+N weitere – Fenster ggf. zu groß)".
+  Das gilt auch je Keyword-Query (z.B. „(+N weitere zu ‚<kw>' – Fenster ggf. zu groß)").
+- **Setup-Hinweis (Stufe 1.5):** Ist die Liste `keywords` leer UND `onboarding.hintShown`
+  false (ein **fehlender** `onboarding`-Schlüssel gilt als `false`), hänge **einmalig** am Ende
+  des Digests eine dezente Zeile an:
+  „💡 Tipp: `/confluence-digest setup`, um eigene Themen hinzuzufügen."
+  Setze danach `onboarding.hintShown: true` in `config.local.yaml` (Schlüssel anlegen, falls er
+  fehlt), damit der Hinweis bei künftigen Läufen nicht erneut erscheint. Sind bereits Keywords
+  gesetzt, entfällt der Hinweis.
 
 ## Fehlerbehandlung
 - MCP `atlassian-mayflower` nicht verbunden / Auth-Fehler → klare Meldung:
@@ -142,3 +183,38 @@ Regeln:
 ## --dry-run
 Schritte 1–6 normal, aber statt Schritt 7/8: gib pro Signal das CQL und die Gesamtzahl aus,
 plus die gerankte Trefferliste (Titel + Signale), ohne Seiten zu holen oder zusammenzufassen.
+Bei gesetzten Keywords je Keyword das `text ~`-CQL plus dessen Gesamtzahl ausgeben.
+
+## setup / Onboarding-Interview
+Wird ausgelöst durch `/confluence-digest setup` **oder** beim Erststart einer neuen Nutzer:in
+(§1, fehlende `config.local.yaml`). Ziel: die Liste `keywords` in `config.local.yaml` pflegen.
+Stufe 1.5 deckt im Interview **nur Keywords** ab (+ Identitätsbestätigung); der Personen-Teil
+ist Stufe 2.
+
+**1. Identität bestätigen.** Rufe `mcp__atlassian-mayflower__atlassianUserInfo` auf, lies
+`account_id` + `name`. Schreibe `accountId: <account_id>` in `config.local.yaml` (ersetzt `auto`)
+und bestätige: „Eingerichtet als <name>." Schlägt der Aufruf fehl → siehe Fehlerbehandlung.
+
+**2. Vorschläge sammeln.** Führe zwei Suchen via `searchConfluenceUsingCql` aus – Fenster fest
+`now("-90d")`, `limit (= 50)`, jeweils **mit** `expand: "content.metadata.labels"`:
+- `mention = currentUser() AND type = page AND lastmodified >= now("-90d") ORDER BY lastmodified DESC`
+- `contributor = currentUser() AND type = page AND lastmodified >= now("-90d") ORDER BY lastmodified DESC`
+
+Aus den Treffern beider Abfragen Kandidaten ableiten:
+- **Labels:** alle `content.metadata.labels.results[].name` einsammeln (Labels sind oft
+  sparse/leer – das ist ok, sie sind nur ein Teil der Quelle).
+- **Titel-Terme:** Titel (`<item>.title`) tokenisieren; Stoppwörter (de/en), reine Zahlen und
+  Jahreszahlen entfernen; verbleibende sinnvolle Terme nach Häufigkeit zählen.
+- **Kandidatenliste** = häufigste Labels + häufigste Titel-Terme, Top ~10, **case-insensitiv
+  dedupliziert** (eine Schreibweise je Begriff behalten).
+
+**3. Dialog.** Zeige die Kandidaten nummeriert. Die Nutzer:in kann frei auswählen, einzelne
+streichen und beliebige eigene Keywords ergänzen. Es gibt kein Minimum/Maximum; eine leere
+Auswahl ist erlaubt.
+
+**4. Ergebnis speichern.** Schreibe die gewählten Keywords nach `keywords:` in
+`config.local.yaml` und setze `onboarding.hintShown: true` (Schlüssel `onboarding` anlegen,
+falls er fehlt). Damit erscheint der Setup-Hinweis aus §8 künftig nicht mehr.
+
+**5. Direkt loslaufen.** Biete an, sofort einen Digest zu laufen
+(normaler Ablauf ab §2 mit Standardfenster). Bei Zustimmung ausführen, sonst beenden.
