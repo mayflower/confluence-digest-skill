@@ -221,8 +221,21 @@ Sekundärsortierung: Aktualität (Reihenfolge aus `ORDER BY lastmodified DESC`).
 
 ### 7. Zusammenfassen
 Zusammengefasst werden (a) die H **Highlights** und (b) je Gruppe die ersten
-`limits.groupSummaries` Einträge (siehe §6). Für jede dieser Seiten
-`mcp__atlassian-mayflower__getConfluencePage` (per `id`) holen und zusammenfassen:
+`limits.groupSummaries` Einträge (siehe §6 – diese Auswahl ist in beiden Modi gleich).
+
+**Ausführungsmodus** (aus §2):
+- **Inline-Modus (≤ 72h):** Hole für jede zu summende Seite zentral
+  `mcp__atlassian-mayflower__getConfluencePage` (per `id`) und fasse sie selbst zusammen – wie bisher.
+- **Fan-out-Modus (> 72h):** Jede zu summende Seite (die H Highlights + je Gruppe die bis
+  `limits.groupSummaries` gedeckelten Einträge) wird von **genau einem** Subagenten (Agent/Task-Tool,
+  `subagent_type: general-purpose`) erledigt. Der Subagent: lädt `getConfluencePage` via `ToolSearch`
+  (`select:mcp__atlassian-mayflower__getConfluencePage`), holt die Seite per `id` (markdown) und gibt
+  **ausschließlich** die fertige Zusammenfassung zurück (Highlight 2–4 Sätze, Gruppen-Eintrag 2–3
+  Sätze) – **nie** den Roh-Body. Schlägt der Fetch fehl (Rechte/gelöscht), gibt der Subagent statt der
+  Summary die Notiz „Inhalt nicht abrufbar" zurück. Die Subagenten sind unabhängig und sollten parallel
+  gestartet werden. Der Haupt-Agent rendert anschließend (§8) unverändert.
+
+In beiden Modi gilt pro Seite:
 - **Highlights:** 2–4 Sätze (ausführlich) – worum geht es / was ist der aktuelle Stand.
 - **Gruppen-Einträge (bis zur Obergrenze):** 2–3 Sätze (kürzer) – worum geht es / was ist neu.
 
