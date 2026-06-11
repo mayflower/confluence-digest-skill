@@ -34,9 +34,14 @@ gitignored und wird nie geteilt.
 ### Eigene Themen (Keyword-Signal)
 
 Neben „mich betreffend" (Mentions + eigene Bearbeitungen) kannst du **eigene Themen** als
-Keywords pflegen. Sie werden org-weit per Volltext (`text ~`) gesucht und erscheinen im Digest
-als dritte Gruppe **„🏷️ Deine Themen"**. Das Ranking gewichtet Mentions am stärksten, dann
-eigene Bearbeitungen, dann Keyword-Treffer (Mention > ownEdit > keyword).
+Keywords pflegen. Sie erscheinen im Digest als dritte Gruppe **„🏷️ Deine Themen"**. Das Ranking
+gewichtet Mentions am stärksten, dann eigene Bearbeitungen, dann Keyword-Treffer
+(Mention > ownEdit > keyword).
+
+Zwei Match-Arten:
+- **`signals.keywords`** – Volltext (`text ~`), findet das Wort auch im Seiteninhalt (breit).
+- **`signals.titleKeywords`** – nur Titel (`title ~`), schmal. Ideal für breite Orts-/Adressbegriffe
+  (z.B. den eigenen Standort), die sonst über Footer/Impressum überall im Volltext auftauchen.
 
 `/confluence-digest setup` startet ein kurzes Interview: Es bestätigt deine Identität und
 schlägt Themen aus Labels und Titeln deiner jüngsten Aktivität vor. Du wählst aus, streichst

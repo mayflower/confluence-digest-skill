@@ -66,13 +66,18 @@ Für jedes aktive Signal eine CQL-Abfrage via `mcp__atlassian-mayflower__searchC
 
 (Nur Signale ausführen, die in der Config `true` sind.)
 
-**Keyword-Signal (Stufe 1.5):** Ist `signals.keywords` **nicht leer**, führe pro Eintrag in
-`signals.keywords` eine Abfrage aus (Volltext-Match, auch im Body):
+**Keyword-Signal (Stufe 1.5):** Es gibt zwei Keyword-Listen, beide erzeugen dasselbe Signal
+`keyword` (Gruppe „Deine Themen"); sie unterscheiden sich nur im CQL-Match:
 
-- keyword: `text ~ "<kw>" AND type = page AND lastmodified >= now("<FENSTER>") ORDER BY lastmodified DESC`, `limit (= 50)`
+- **`signals.keywords`** (Volltext, auch im Body): pro Eintrag
+  `text ~ "<kw>" AND type = page AND lastmodified >= now("<FENSTER>") ORDER BY lastmodified DESC`
+- **`signals.titleKeywords`** (nur Titel – schmal, gegen Footer-/Adress-Rauschen): pro Eintrag
+  `title ~ "<kw>" AND type = page AND lastmodified >= now("<FENSTER>") ORDER BY lastmodified DESC`
 
-ebenfalls dasselbe Fenster aus Schritt 2; `expand` ist hier nicht nötig.
-Ist die Liste leer, entfällt dieser Schritt.
+Beide jeweils `limit (= 50)`, gleiches Fenster aus Schritt 2; `expand` nicht nötig. Führe pro
+Eintrag in **beiden** nicht-leeren Listen je eine Abfrage aus. Sind beide Listen leer, entfällt
+dieser Schritt. (Tipp: breite Begriffe, die als Ortsname/Adresse überall im Body vorkommen –
+z.B. der eigene Standort – gehören in `titleKeywords`, nicht in `keywords`.)
 
 **Antwort-Format (wichtig – nach Bedeutung mappen, nicht auf einen festen Pfad verlassen):**
 `searchConfluenceUsingCql` liefert je nach Fall eine von zwei Formen. Lies die Felder nach
@@ -97,10 +102,11 @@ Die absolute URL im rohen Format = `_links.base` (z.B. `https://mayflowergmbh.at
 - Pro Seite merke die Menge der Treffer-Signale (eine Seite kann mehrere Signale tragen, z.B.
   mention UND ownEdit UND keyword).
 - Keyword-Treffer mit dem Signal `keyword` vermerken **plus, welches Keyword** sie ausgelöst hat
-  (eine Seite kann von mehreren Keywords getroffen werden → alle merken).
+  (aus `signals.keywords` ODER `signals.titleKeywords`; eine Seite kann von mehreren Keywords
+  getroffen werden → alle merken).
 - Merke je Query die Gesamtzahl (`totalSize` bzw. `content.totalCount`); ist sie `> limit`,
   für die Volumen-Notiz vormerken (`N = Gesamtzahl - limit`, also `Gesamtzahl - 50`). Das gilt
-  je mention-/ownEdit-Query **und je Query pro Eintrag aus `signals.keywords`** (Gesamtzahl pro
+  je mention-/ownEdit-Query **und je Query pro Keyword** (aus beiden Listen; Gesamtzahl pro
   Keyword separat führen).
 
 ### 5. Ranken
@@ -168,13 +174,14 @@ Regeln:
 - Leere Gruppen weglassen. Gar nichts → „🟢 Nichts Neues im Zeitraum (<Label>)."
 - Volumen-Notiz anhängen, wo die Gesamtzahl `> limit`: „(+N weitere – Fenster ggf. zu groß)".
   Das gilt auch je Keyword-Query (z.B. „(+N weitere zu ‚<kw>' – Fenster ggf. zu groß)").
-- **Setup-Hinweis (Stufe 1.5):** Ist `signals.keywords` leer UND `onboarding.hintShown`
+- **Setup-Hinweis (Stufe 1.5):** Sind **beide** Listen `signals.keywords` UND
+  `signals.titleKeywords` leer UND `onboarding.hintShown`
   false (ein **fehlender** `onboarding`-Schlüssel gilt als `false`), hänge **einmalig** am Ende
   des Digests eine dezente Zeile an:
   „💡 Tipp: `/confluence-digest setup`, um eigene Themen hinzuzufügen."
   Setze danach `onboarding.hintShown: true` in `config.local.yaml` (Schlüssel anlegen, falls er
-  fehlt), damit der Hinweis bei künftigen Läufen nicht erneut erscheint. Sind bereits Keywords
-  gesetzt, entfällt der Hinweis. Wurde in DIESEM Lauf das Interview durchlaufen oder wurden
+  fehlt), damit der Hinweis bei künftigen Läufen nicht erneut erscheint. Sind in einer der beiden
+  Listen Keywords gesetzt, entfällt der Hinweis. Wurde in DIESEM Lauf das Interview durchlaufen oder wurden
   gerade Keywords gesetzt, gilt `onboarding.hintShown` bereits als true — der Hinweis entfällt.
 
 ## Fehlerbehandlung
@@ -186,11 +193,13 @@ Regeln:
 ## --dry-run
 Schritte 1–6 normal, aber statt Schritt 7/8: gib pro Signal das CQL und die Gesamtzahl aus,
 plus die gerankte Trefferliste (Titel + Signale), ohne Seiten zu holen oder zusammenzufassen.
-Bei nicht-leerer `signals.keywords`: je Eintrag das `text ~`-CQL plus dessen Gesamtzahl ausgeben.
+Bei nicht-leerer `signals.keywords`: je Eintrag das `text ~`-CQL plus Gesamtzahl ausgeben;
+bei nicht-leerer `signals.titleKeywords`: je Eintrag das `title ~`-CQL plus Gesamtzahl.
 
 ## setup / Onboarding-Interview
 Wird ausgelöst durch `/confluence-digest setup` **oder** beim Erststart einer neuen Nutzer:in
-(§1, fehlende `config.local.yaml`). Ziel: die Liste `signals.keywords` in `config.local.yaml` pflegen.
+(§1, fehlende `config.local.yaml`). Ziel: die Keyword-Listen `signals.keywords` (Volltext) und
+`signals.titleKeywords` (nur Titel) in `config.local.yaml` pflegen.
 Stufe 1.5 deckt im Interview **nur Keywords** ab (+ Identitätsbestätigung); der Personen-Teil
 ist Stufe 2.
 
@@ -215,13 +224,17 @@ Aus den Treffern beider Abfragen Kandidaten ableiten:
 
 **3. Dialog.** Zeige die Kandidaten nummeriert. Die Nutzer:in kann frei auswählen, einzelne
 streichen und beliebige eigene Keywords ergänzen. Es gibt kein Minimum/Maximum; eine leere
-Auswahl ist erlaubt.
+Auswahl ist erlaubt. Weise kurz auf die zwei Match-Arten hin und lass pro Keyword wählen:
+**Volltext** (Standard, findet das Wort auch im Body) → `signals.keywords`; **nur Titel**
+(schmal, gut für breite Orts-/Adressbegriffe wie den eigenen Standort) → `signals.titleKeywords`.
+Im Zweifel Volltext.
 
-**4. Ergebnis speichern.** Schreibe die gewählten Keywords nach `signals.keywords` in
-`config.local.yaml` und setze `onboarding.hintShown: true` (Schlüssel `onboarding` anlegen,
-falls er fehlt). Damit erscheint der Setup-Hinweis aus §8 künftig nicht mehr.
+**4. Ergebnis speichern.** Schreibe die gewählten Keywords je nach Match-Art nach
+`signals.keywords` (Volltext) bzw. `signals.titleKeywords` (nur Titel) in `config.local.yaml`
+und setze `onboarding.hintShown: true` (Schlüssel `onboarding` anlegen, falls er fehlt). Damit
+erscheint der Setup-Hinweis aus §8 künftig nicht mehr.
 
 **5. Direkt loslaufen.** Biete an, sofort einen Digest zu laufen
 (normaler Ablauf ab §2 mit Standardfenster). Bei Zustimmung ausführen, sonst beenden.
 Der unmittelbar danach angebotene Digest-Lauf verwendet die soeben geschriebenen Config-Werte
-(Keywords in `signals.keywords` + `onboarding.hintShown: true`).
+(Keywords in `signals.keywords`/`signals.titleKeywords` + `onboarding.hintShown: true`).
