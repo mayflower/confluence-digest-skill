@@ -9,7 +9,11 @@ Priorisierter Überblick über kürzlich geänderte, für die Nutzer:in relevant
 auf `mayflowergmbh`. Signal „mich betreffend" (Mentions + eigene Bearbeitungen), optionale
 Themen-Keywords („Deine Themen") und optional verfolgte Personen („Verfolgte Personen").
 
-**Datenquelle:** MCP-Server `atlassian-mayflower` (Tools `mcp__atlassian-mayflower__*`).
+**Datenquelle:** der Atlassian-MCP-Server, dessen Name in der Config unter `mcpServer` steht
+(Default `atlassian-mayflower`). **Ersetze `<mcpServer>` in allen Tool-Namen unten durch diesen
+Wert** – die Tools heißen also `mcp__<mcpServer>__searchConfluenceUsingCql`,
+`mcp__<mcpServer>__getConfluencePage`, `mcp__<mcpServer>__atlassianUserInfo`,
+`mcp__<mcpServer>__lookupJiraAccountId` (im Fan-out via `ToolSearch select:mcp__<mcpServer>__…`).
 **Konfiguration:** `config.local.yaml` im Skill-Verzeichnis (nutzer-lokal, gitignored).
 **Design:** `docs/plans/2026-06-11-confluence-digest-design.md`
 
@@ -71,13 +75,13 @@ Alle anderen Argumente (`<Fenster>`, `--dry-run`, kein Argument) laufen wie unte
 Modi identisch – nur die *Ausführung* unterscheidet sich):
 
 - **Inline-Modus (≤ 72h):** Führe die CQL-Abfragen je Signal direkt via
-  `mcp__atlassian-mayflower__searchConfluenceUsingCql` aus (dürfen in einem Turn parallel abgesetzt
+  `mcp__<mcpServer>__searchConfluenceUsingCql` aus (dürfen in einem Turn parallel abgesetzt
   werden) – wie bisher. Lies die Felder selbst nach der Feld-Mapping-Tabelle weiter unten.
 - **Fan-out-Modus (> 72h):** Für **jede** aktive Signal-Query (mentions, ownEdits, **je**
   `signals.keywords`-Eintrag, **je** `signals.titleKeywords`-Eintrag, **je** `signals.people`-Eintrag)
   starte **genau einen** Subagenten via dem Agent/Task-Tool (`subagent_type: general-purpose`). Der
   Subagent:
-  1. lädt das MCP-Tool via `ToolSearch` (`select:mcp__atlassian-mayflower__searchConfluenceUsingCql`),
+  1. lädt das MCP-Tool via `ToolSearch` (`select:mcp__<mcpServer>__searchConfluenceUsingCql`),
   2. führt **exakt dieselbe CQL** für genau dieses eine Signal aus (cloudId aus Config, `limit (= 50)`,
      Fenster aus Schritt 2 – die CQL-Strings weiter unten gelten unverändert),
   3. mappt die Felder selbst nach der Feld-Mapping-Tabelle weiter unten und gibt **ausschließlich** das
@@ -115,7 +119,7 @@ id | title | space | author | friendlyLastModified | url(absolut) | type
 
 **CQL-Definitionen je Signal** (das *WAS* – beide Modi nutzen exakt diese Strings; im Fan-out führt
 sie der jeweilige Subagent aus, im Inline-Modus der Haupt-Agent direkt. **Nicht zusätzlich zentral
-ausführen.**) Jeweils via `mcp__atlassian-mayflower__searchConfluenceUsingCql`, cloudId aus Config,
+ausführen.**) Jeweils via `mcp__<mcpServer>__searchConfluenceUsingCql`, cloudId aus Config,
 `limit (= 50)`, Fenster aus Schritt 2:
 
 - mentions:  `mention = currentUser() AND type in (page, blogpost) AND lastmodified >= now("<FENSTER>") ORDER BY lastmodified DESC`
@@ -152,7 +156,7 @@ Jeweils `limit (= 50)`, gleiches Fenster aus Schritt 2. Ist die Liste leer, entf
 (`(von <name>)`, dry-run, Hinweise) nutzt den Config-`name`.
 
 **Runtime-Auflösung fehlender IDs (vor den Abfragen):** Hat ein `people`-Eintrag einen `name`, aber
-keine/leere `id`, löse den Namen einmalig via `mcp__atlassian-mayflower__lookupJiraAccountId`
+keine/leere `id`, löse den Namen einmalig via `mcp__<mcpServer>__lookupJiraAccountId`
 (cloudId aus Config, `searchString = <name>`) auf:
 - **Genau ein** Treffer in `data.users.users[]` → ergänze dessen `accountId` als `id` **im
   bestehenden Eintrag** (Name bleibt erhalten → Eintrag ist danach `{name, id}`) und schreibe das
@@ -232,11 +236,11 @@ Zusammengefasst werden (a) die H **Highlights** und (b) je Gruppe die ersten
 
 **Ausführungsmodus** (aus §2):
 - **Inline-Modus (≤ 72h):** Hole für jede zu summende Seite zentral
-  `mcp__atlassian-mayflower__getConfluencePage` (per `id`) und fasse sie selbst zusammen – wie bisher.
+  `mcp__<mcpServer>__getConfluencePage` (per `id`) und fasse sie selbst zusammen – wie bisher.
 - **Fan-out-Modus (> 72h):** Jede zu summende Seite (die H Highlights + je Gruppe die bis
   `limits.groupSummaries` gedeckelten Einträge) wird von **genau einem** Subagenten (Agent/Task-Tool,
   `subagent_type: general-purpose`) erledigt. Der Subagent: lädt `getConfluencePage` via `ToolSearch`
-  (`select:mcp__atlassian-mayflower__getConfluencePage`), holt die Seite per `id` (markdown) und gibt
+  (`select:mcp__<mcpServer>__getConfluencePage`), holt die Seite per `id` (markdown) und gibt
   **ausschließlich** die fertige Zusammenfassung zurück (Highlight 2–4 Sätze, Gruppen-Eintrag 2–3
   Sätze) – **nie** den Roh-Body. Schlägt der Fetch fehl (Rechte/gelöscht), gibt der Subagent statt der
   Summary die Notiz „Inhalt nicht abrufbar" zurück. Die Subagenten sind unabhängig und sollten parallel
@@ -321,8 +325,8 @@ Regeln:
   gerade Keywords gesetzt, gilt `onboarding.hintShown` bereits als true — der Hinweis entfällt.
 
 ## Fehlerbehandlung
-- MCP `atlassian-mayflower` nicht verbunden / Auth-Fehler → klare Meldung:
-  „Bitte `/mcp` öffnen und `atlassian-mayflower` authentifizieren." → Abbruch.
+- MCP-Server (`mcpServer`, Default `atlassian-mayflower`) nicht verbunden / Auth-Fehler → klare Meldung:
+  „Bitte `/mcp` öffnen und den Atlassian-MCP-Server (`<mcpServer>`) authentifizieren." → Abbruch.
 - `atlassianUserInfo` ohne `account_id` → „mich betreffend"-Signale überspringen, Hinweis ausgeben.
 - Einzelne CQL-Abfrage schlägt fehl → überspringen, Hinweis, restliche Signale weiterverarbeiten.
 
@@ -344,7 +348,7 @@ Wird ausgelöst durch `/confluence-digest setup` **oder** beim Erststart einer n
 (`{name, id}`) in `config.local.yaml` pflegen.
 Das Interview deckt also **Keywords UND Personen** ab (+ Identitätsbestätigung).
 
-**1. Identität bestätigen.** Rufe `mcp__atlassian-mayflower__atlassianUserInfo` auf, lies
+**1. Identität bestätigen.** Rufe `mcp__<mcpServer>__atlassianUserInfo` auf, lies
 `account_id` + `name`. Schreibe `accountId: <account_id>` in `config.local.yaml` (ersetzt `auto`)
 und bestätige: „Eingerichtet als <name>." Schlägt der Aufruf fehl → siehe Fehlerbehandlung.
 
@@ -377,7 +381,7 @@ eine **leere** Auswahl ist erlaubt – dann bleibt `signals.people` leer).
   `content.history.createdBy.displayName` (rohes Format) bzw. `author.displayName` (vereinfachtes
   Format), **ohne dich selbst** (eigener `name`/`accountId`), und biete die häufigsten als
   Kandidat:innen an. (Diese Quelle ist sparse/optional – ist nichts ableitbar, einfach frei fragen.)
-- Pro genannter Person rufe `mcp__atlassian-mayflower__lookupJiraAccountId` auf (cloudId aus Config,
+- Pro genannter Person rufe `mcp__<mcpServer>__lookupJiraAccountId` auf (cloudId aus Config,
   `searchString = <name>`). Bei **genau einem** Treffer in `data.users.users[]` direkt übernehmen;
   bei **mehreren** Treffern die Auswahl (mit `displayName`/E-Mail) bestätigen lassen; bei **keinem**
   Treffer Hinweis und Person überspringen. Sammle die bestätigten Personen als `{name, id}`

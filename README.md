@@ -9,8 +9,11 @@ Themen" und Personen-Signal „Verfolgte Personen"). Design & Plan siehe [`docs/
 
 ## Installation
 
-Voraussetzung: Der MCP-Server **`atlassian-mayflower`** muss eingerichtet und authentifiziert sein
-(`/mcp` → `atlassian-mayflower` → authenticate, beim OAuth nur die `mayflowergmbh`-Site freigeben).
+Voraussetzung: Ein **Atlassian-MCP-Server** muss eingerichtet und authentifiziert sein
+(`/mcp` → Server → authenticate). Trage seinen Namen in `config.local.yaml` unter **`mcpServer`**
+ein (Default `atlassian-mayflower`); die Skill ruft dann die Tools `mcp__<mcpServer>__*` auf.
+Beispiele: lokaler Server `atlassian-mayflower`/`atlassian`, oder der claude.ai-Connector
+`claude_ai_Atlassian`. (Bei einem eigenen lokalen Server beim OAuth nur die gewünschte Site freigeben.)
 
 Skill installieren (Symlink ins Claude-Code-Skills-Verzeichnis):
 

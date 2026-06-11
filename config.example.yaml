@@ -1,4 +1,5 @@
 # confluence-digest – Vorlage. Beim ersten Lauf wird daraus config.local.yaml erzeugt.
+mcpServer: atlassian-mayflower   # Name deines Atlassian-MCP-Servers (Tools heißen mcp__<mcpServer>__*); z.B. atlassian, claude_ai_Atlassian
 cloudId: "<cloud-id>"   # eigene Confluence-cloudId eintragen – siehe README („cloudId ermitteln")
 accountId: auto            # beim 1. Lauf via atlassianUserInfo automatisch gefüllt; von späteren Stufen genutzt (Stufe 1 nutzt currentUser())
 signals:
