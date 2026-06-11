@@ -22,6 +22,19 @@ Danach Claude Code neu laden. Beim ersten Aufruf erzeugt die Skill automatisch e
 nutzer-lokale `config.local.yaml` (mit deiner via MCP ermittelten Account-ID) – die ist
 gitignored und wird nie geteilt.
 
+### cloudId ermitteln
+
+`config.example.yaml` enthält `cloudId: "<cloud-id>"` als Platzhalter – trage hier die cloudId
+deiner Confluence-Instanz ein (in `config.local.yaml`). So findest du sie:
+
+- Frag Claude im Projekt: *„Welche cloudId hat mein Confluence?"* – nutzt das MCP-Tool
+  `getAccessibleAtlassianResources` und gibt die `id` deiner Site zurück, oder
+- rufe `https://<deine-site>.atlassian.net/_edge/tenant_info` im Browser auf – das JSON-Feld
+  `cloudId` ist der Wert.
+
+Die cloudId ist kein Geheimnis, aber instanzspezifisch – daher als Platzhalter und nicht
+fest im öffentlichen Repo.
+
 ## Benutzung
 
 ```

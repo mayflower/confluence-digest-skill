@@ -1,5 +1,5 @@
 # confluence-digest – Vorlage. Beim ersten Lauf wird daraus config.local.yaml erzeugt.
-cloudId: <cloud-id>   # mayflowergmbh
+cloudId: "<cloud-id>"   # eigene Confluence-cloudId eintragen – siehe README („cloudId ermitteln")
 accountId: auto            # beim 1. Lauf via atlassianUserInfo automatisch gefüllt; von späteren Stufen genutzt (Stufe 1 nutzt currentUser())
 signals:
   mentions: true
