@@ -62,6 +62,7 @@ Alle anderen Argumente (`<Fenster>`, `--dry-run`, kein Argument) laufen wie unte
   - **≤ 72h → Inline-Modus** (alles direkt im Haupt-Agenten, wie bisher).
   - **`--dry-run` ist IMMER Inline-Modus** (braucht nur CQL + `totalSize`, kein Fan-out, keine Inhalte) –
     unabhängig von der Fenstergröße.
+  - **Fallback:** Steht die Agent/Task-Fähigkeit nicht zur Verfügung, führe auch > 72h **inline** aus.
 - Bei `--dry-run`: Argument-Parsing identisch, nur spätere Schritte unterscheiden sich.
 
 ### 3. Relevante Seiten holen
@@ -100,7 +101,8 @@ id | title | space | author | friendlyLastModified | url(absolut) | type
 - `signal` benennt das auslösende Signal eindeutig: `mentions`, `ownEdits`, `keyword:<kw>` (für
   `signals.keywords`-Einträge), `titleKeyword:<kw>` (für `signals.titleKeywords`-Einträge) oder
   `person:<name>` (Config-`name`, nicht die `id`).
-- Die Spalten je Treffer entsprechen der Feld-Mapping-Tabelle weiter unten:
+- Die Spalten je Treffer entsprechen der Feld-Mapping-Tabelle weiter unten (rohes **oder**
+  vereinfachtes Antwort-Format – die Tabelle deckt beide Pfade ab; Beispiele unten = rohes Format):
   `space = resultGlobalContainer.title`, `author = content.history.createdBy.displayName`,
   `url(absolut) = _links.base + <item>.url`, `type = page|blogpost`. Der Subagent wendet dieses
   Mapping **selbst** an und gibt nur die fertigen Spaltenwerte zurück.
@@ -111,8 +113,10 @@ id | title | space | author | friendlyLastModified | url(absolut) | type
 
 ---
 
-Für jedes aktive Signal eine CQL-Abfrage via `mcp__atlassian-mayflower__searchConfluenceUsingCql`
-(cloudId aus Config), `limit (= 50)`, jeweils mit dem Fenster aus Schritt 2:
+**CQL-Definitionen je Signal** (das *WAS* – beide Modi nutzen exakt diese Strings; im Fan-out führt
+sie der jeweilige Subagent aus, im Inline-Modus der Haupt-Agent direkt. **Nicht zusätzlich zentral
+ausführen.**) Jeweils via `mcp__atlassian-mayflower__searchConfluenceUsingCql`, cloudId aus Config,
+`limit (= 50)`, Fenster aus Schritt 2:
 
 - mentions:  `mention = currentUser() AND type in (page, blogpost) AND lastmodified >= now("<FENSTER>") ORDER BY lastmodified DESC`
 - ownEdits:  `contributor = currentUser() AND type in (page, blogpost) AND lastmodified >= now("<FENSTER>") ORDER BY lastmodified DESC`
@@ -178,6 +182,9 @@ Die absolute URL im rohen Format = `_links.base` (z.B. `https://mayflowergmbh.at
 
 ### 4. Mergen & dedupen
 - Sammle alle Treffer aller Abfragen (mentions, ownEdits, je Keyword, je Person). Schlüssel = Seiten-ID.
+  Im **Fan-out-Modus** kann dieselbe Seite in **mehreren** Subagenten-Rückgaben auftauchen (je
+  auslösendem Signal eine) → über `id` zusammenführen und die Signale **über alle** Rückgaben hinweg
+  vereinigen.
 - Pro Seite merke die Menge der Treffer-Signale (eine Seite kann mehrere Signale tragen, z.B.
   mention UND ownEdit UND keyword UND person).
 - Keyword-Treffer mit dem Signal `keyword` vermerken **plus, welches Keyword** sie ausgelöst hat
