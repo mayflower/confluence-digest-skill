@@ -1,6 +1,6 @@
 # confluence-digest – Vorlage. Beim ersten Lauf wird daraus config.local.yaml erzeugt.
 cloudId: <cloud-id>   # mayflowergmbh
-accountId: auto            # beim 1. Lauf via atlassianUserInfo gesetzt
+accountId: auto            # beim 1. Lauf via atlassianUserInfo automatisch gefüllt; von späteren Stufen genutzt (Stufe 1 nutzt currentUser())
 signals:
   mentions: true
   ownEdits: true
