@@ -1,7 +1,9 @@
 # Confluence-Digest – Design
 
 **Datum:** 2026-06-11
-**Status:** Entwurf validiert (Brainstorming abgeschlossen), bereit für Implementierungsplan Stufe 1
+**Status:** Umgesetzt bis **Stufe 2a** inkl. Blogpost-Erfassung & Subagenten-Fan-out (> 72h).
+Dieses Dokument ist der ursprüngliche Design-Entwurf; **verbindlich für das aktuelle Verhalten sind
+`SKILL.md` + `README.md`**. Die technischen Eckdaten unten wurden an den umgesetzten Stand angeglichen.
 
 ## Zweck
 
@@ -11,14 +13,16 @@ Spaces durchzusehen.
 
 ## Relevanz-Signale
 
-Cross-space (kein fixer Space-Filter), getrieben von drei Signalen:
+Cross-space (kein fixer Space-Filter), Inhaltstypen **Seiten und Blogposts** (`type in (page, blogpost)`),
+getrieben von vier Signalen:
 
-- **Mich betreffend** – Seiten, in denen ich erwähnt werde (Mention) oder die ich mit-bearbeitet habe.
-- **Themen/Keywords** – Volltext-Treffer zu konfigurierten Begriffen, egal in welchem Space.
-- **Personen/Teams** – Aktivität bestimmter verfolgter Kolleg:innen.
+- **Mich betreffend** – Seiten/Blogposts, in denen ich erwähnt werde (Mention) oder die ich mit-bearbeitet habe.
+- **Themen/Keywords** – Treffer zu konfigurierten Begriffen: Volltext (`signals.keywords`, `text ~`) **oder**
+  nur Titel (`signals.titleKeywords`, `title ~` – schmal, gegen Footer-/Adress-Rauschen).
+- **Verfolgte Personen** – Aktivität bestimmter Kolleg:innen (`signals.people`, `{name, id}`).
 
-Stufe 1 aktiviert nur „mich betreffend" (braucht keine Pflege, funktioniert sofort). Keywords kommen
-mit dem Onboarding-Interview in Stufe 1.5, Personen/Teams in Stufe 2 (siehe Ausbaustufen & Onboarding).
+Stufe 1 aktivierte nur „mich betreffend"; Keywords kamen in Stufe 1.5, Personen in Stufe 2a.
+**Teams gestrichen** (werden bei Mayflower nicht in Confluence gepflegt).
 
 ## Architektur
 
@@ -48,29 +52,35 @@ Drei klar getrennte Bausteine (Trennung ist Voraussetzung für die spätere Vert
 Nutzer-Config (z.B. `config.local.yaml`, gitignored), beim ersten Lauf aus Vorlage erzeugt:
 
 ```yaml
-cloudId: mayflowergmbh          # feste Site
+cloudId: "<cloud-id>"           # eigene Confluence-cloudId (Platzhalter in der Vorlage)
 accountId: auto                 # beim 1. Lauf via atlassianUserInfo gesetzt
 signals:
-  mentions: true                # Seiten, in denen ich erwähnt werde
-  ownEdits: true                # Seiten, die ich mit-bearbeitet habe
-  keywords: []                  # z.B. ["Symfony", "DSGVO"] – per Onboarding befüllt (Stufe 1.5)
-  people:   []                  # Namen/Account-IDs verfolgter Personen – Stufe 2
+  mentions: true                # Seiten/Blogposts, in denen ich erwähnt werde
+  ownEdits: true                # Seiten/Blogposts, die ich mit-bearbeitet habe
+  keywords: []                  # Volltext-Keywords (text ~), per setup befüllt
+  titleKeywords: []             # nur-Titel-Keywords (title ~) – schmal
+  people:   []                  # verfolgte Personen als {name, id}-Einträge
 limits:
-  maxSummaries: 8               # Obergrenze KI-zusammengefasster Seiten pro Lauf
+  highlights: 5                 # Anzahl ausführlicher Highlights (2–4 Sätze)
+  groupSummaries: 8             # max Kurz-Summaries (2–3 Sätze) je Restgruppe
+onboarding:
+  hintShown: false              # einmaliger setup-Hinweis bei leeren Keywords
 ```
 
 ### Signal → CQL Mapping
 
-Jeweils kombiniert mit `lastmodified >= <Fensterstart>` und `type = page`:
+Jeweils kombiniert mit `lastmodified >= now("-<Fenster>")` und `type in (page, blogpost)`,
+`ORDER BY lastmodified DESC`. Mentions/eigene nutzen `currentUser()`:
 
-| Signal               | CQL-Kern                              |
-|----------------------|---------------------------------------|
-| Mentions             | `mention = "<accountId>"`             |
-| Eigene Bearbeitungen | `contributor = "<accountId>"`         |
-| Keywords             | `text ~ "<keyword>"` (1 Query/Keyword)|
-| Personen             | `contributor in ("<id1>","<id2>")`    |
+| Signal               | CQL-Kern                                    |
+|----------------------|---------------------------------------------|
+| Mentions             | `mention = currentUser()`                   |
+| Eigene Bearbeitungen | `contributor = currentUser()`               |
+| Keywords (Volltext)  | `text ~ "<keyword>"` (1 Query je Keyword)   |
+| Keywords (nur Titel) | `title ~ "<keyword>"` (1 Query je Keyword)  |
+| Verfolgte Personen   | `contributor = "<id>"` (1 Query je Person)  |
 
-**Teams** sind in CQL nicht direkt filterbar → später zu Mitglieds-Account-IDs auflösen (Stufe 2).
+(Pro Person eine eigene Query → Attribution „von wem". Teams gestrichen.)
 
 ## Erststart-Onboarding (Interview)
 
@@ -123,8 +133,12 @@ Das volle Hybrid-Interview liefert Mehrwert erst mit den Keyword-Signalen → ko
    - P3: Keyword-Volltreffer
    - P4: verfolgte Personen
    - Mehrfach-Treffer steigen (Mention + Keyword > nur Keyword).
-6. **Top-N Inhalte holen** (bis `maxSummaries`) via `getConfluencePage`, zusammenfassen. Rest ohne Volltext-Fetch in die Kurzliste.
+6. **Zusammenfassen** via `getConfluencePage`: die `limits.highlights` Highlights ausführlich (2–4 Sätze),
+   je Restgruppe bis `limits.groupSummaries` Einträge kurz (2–3 Sätze); darüber nur Titel+Link.
 7. **Rendern** (siehe Output).
+
+**Ausführung:** Fenster ≤ 72h → alles inline; **> 72h → Subagenten-Fan-out** (je Such-Query und je
+zu summender Seite ein Subagent, kompakte Rückgabe); `--dry-run` immer inline.
 
 ### Volumen-Schutz
 
@@ -140,21 +154,21 @@ Markdown, Ausgabe im Chat (Stufe 1):
 # Confluence-Digest · <Zeitraum>
 <Kopfzeile: X relevante Seiten aus Y Spaces>
 
-## ⭐ Highlights (Top 3–5)
+## ⭐ Highlights (Top `limits.highlights`, Default 5)
 ### <Seitentitel> · <Space> · <Autor>, <wann>
 <2–4 Sätze KI-Zusammenfassung>
 **Warum für dich:** <z.B. "Du wirst erwähnt" / "Keyword ‚DSGVO'">
 🔗 <Link>
 
-## Nach Signal gruppiert
+## Nach Signal gruppiert  (Priorität: Mentions > ownEdits > Themen > Personen)
 ### 🔔 Dich betreffend (Mentions)
-- <Titel> · <Space> · <Autor>, <wann> — <1 Satz> 🔗
+- <Titel> · <Space> · <wann> — <2–3 Sätze Summary, bis groupSummaries> 🔗
 ### ✏️ Von dir mitbearbeitet
 - ...
 ### 🏷️ Deine Themen
-- ... (+12 weitere zu ‚Symfony' – Keyword evtl. zu breit)
+- ... (+N weitere ohne Zusammenfassung; bei zu breitem Keyword zusätzlich Volumen-Notiz)
 ### 👥 Verfolgte Personen
-- ...
+- <Titel> · <Space> · <wann> *(von <name>)* — <2–3 Sätze> 🔗
 ```
 
 ### Regeln
@@ -177,8 +191,8 @@ Render-Funktion bleibt, nur Ausgabeziel wechselt.
 ## Bewusste Grenzen (YAGNI)
 
 - Kein echter Versions-Diff (MCP-Limit) – Zusammenfassung beschreibt aktuellen Stand.
-- Keine State-Datei in Stufe 1 (Fenster aus Datum).
-- Keine Teams-Auflösung, keine Keywords/Personen-Pflege-UI – Stufe 2.
+- Keine State-Datei (Fenster aus Datum).
+- Keine Teams (gestrichen). Keywords/Personen werden per `setup`-Interview gepflegt (umgesetzt).
 
 ## Test
 
@@ -204,9 +218,8 @@ Render-Funktion bleibt, nur Ausgabeziel wechselt.
   Name in der Such-Antwort). Verbesserung (Stufe 1.5/2): `version.authorId` zu einem Namen auflösen
   und als echtes „zuletzt geändert von" anzeigen. Live bestätigt am 2026-06-11.
 
-## Offene Punkte für die Implementierung
+## Geklärte Punkte (ehem. offen)
 
-- Genaue CQL-Unterstützung von `mention` und `contributor` gegen die reale Instanz verifizieren
-  (ggf. Alternativen via `searchConfluenceUsingCql` testen).
-- Format der relativen Zeitangaben.
-- Ablageort der Nutzer-Config (Projektordner vs. `~/.config`).
+- CQL-Unterstützung von `mention`/`contributor`/`text ~`/`title ~` gegen die reale Instanz **bestätigt**.
+- Relative Zeitangaben kommen fertig aus `friendlyLastModified`.
+- Nutzer-Config liegt **neben `SKILL.md`** (gitignored `config.local.yaml`).
