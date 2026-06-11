@@ -189,6 +189,11 @@ Render-Funktion bleibt, nur Ausgabeziel wechselt.
 
 ## Bekannte Einschränkungen / Backlog
 
+- **Label-/Tag-Signal (Backlog):** Ein eigenes Signal für verfolgte Confluence-Labels
+  (`label in ("tag1","tag2")`) wäre denkbar – kuratierte Tags als Relevanzquelle. Vertagt; greift
+  nur, wo konsequent gelabelt wird. (Blogposts werden bereits über `type in (page, blogpost)`
+  abgedeckt, unabhängig von Labels.)
+
 - **„zuletzt von" zeigt die Ersteller:in, nicht die letzte bearbeitende Person.** Stufe 1 nutzt
   `history.createdBy.displayName`. Die letzte Änderung steckt in `version.authorId` (nur ID, kein
   Name in der Such-Antwort). Verbesserung (Stufe 1.5/2): `version.authorId` zu einem Namen auflösen

@@ -61,18 +61,22 @@ Alle anderen Argumente (`<Fenster>`, `--dry-run`, kein Argument) laufen wie unte
 Für jedes aktive Signal eine CQL-Abfrage via `mcp__atlassian-mayflower__searchConfluenceUsingCql`
 (cloudId aus Config), `limit (= 50)`, jeweils mit dem Fenster aus Schritt 2:
 
-- mentions:  `mention = currentUser() AND type = page AND lastmodified >= now("<FENSTER>") ORDER BY lastmodified DESC`
-- ownEdits:  `contributor = currentUser() AND type = page AND lastmodified >= now("<FENSTER>") ORDER BY lastmodified DESC`
+- mentions:  `mention = currentUser() AND type in (page, blogpost) AND lastmodified >= now("<FENSTER>") ORDER BY lastmodified DESC`
+- ownEdits:  `contributor = currentUser() AND type in (page, blogpost) AND lastmodified >= now("<FENSTER>") ORDER BY lastmodified DESC`
 
 (Nur Signale ausführen, die in der Config `true` sind.)
+
+Alle Abfragen nutzen `type in (page, blogpost)` – so werden **Seiten und Blogposts** erfasst.
+Blogposts sind ein eigener Confluence-Inhaltstyp (unabhängig von Labels/Tags); ohne `blogpost` im
+Typ-Filter blieben sie sonst über *alle* Signale unsichtbar.
 
 **Keyword-Signal (Stufe 1.5):** Es gibt zwei Keyword-Listen, beide erzeugen dasselbe Signal
 `keyword` (Gruppe „Deine Themen"); sie unterscheiden sich nur im CQL-Match:
 
 - **`signals.keywords`** (Volltext, auch im Body): pro Eintrag
-  `text ~ "<kw>" AND type = page AND lastmodified >= now("<FENSTER>") ORDER BY lastmodified DESC`
+  `text ~ "<kw>" AND type in (page, blogpost) AND lastmodified >= now("<FENSTER>") ORDER BY lastmodified DESC`
 - **`signals.titleKeywords`** (nur Titel – schmal, gegen Footer-/Adress-Rauschen): pro Eintrag
-  `title ~ "<kw>" AND type = page AND lastmodified >= now("<FENSTER>") ORDER BY lastmodified DESC`
+  `title ~ "<kw>" AND type in (page, blogpost) AND lastmodified >= now("<FENSTER>") ORDER BY lastmodified DESC`
 
 Beide jeweils `limit (= 50)`, gleiches Fenster aus Schritt 2; `expand` nicht nötig. Führe pro
 Eintrag in **beiden** nicht-leeren Listen je eine Abfrage aus. Sind beide Listen leer, entfällt
@@ -83,7 +87,7 @@ z.B. der eigene Standort – gehören in `titleKeywords`, nicht in `keywords`.)
 Abfrage aus (eigene Query pro Person → Attribution „von wem"):
 
 - pro Eintrag mit aufgelöstem `id`:
-  `contributor = "<id>" AND type = page AND lastmodified >= now("<FENSTER>") ORDER BY lastmodified DESC`
+  `contributor = "<id>" AND type in (page, blogpost) AND lastmodified >= now("<FENSTER>") ORDER BY lastmodified DESC`
 
 Jeweils `limit (= 50)`, gleiches Fenster aus Schritt 2. Ist die Liste leer, entfällt dieser Schritt.
 
@@ -270,8 +274,8 @@ und bestätige: „Eingerichtet als <name>." Schlägt der Aufruf fehl → siehe 
 
 **2. Vorschläge sammeln.** Führe zwei Suchen via `searchConfluenceUsingCql` aus – Fenster fest
 `now("-90d")`, `limit (= 50)`, jeweils **mit** `expand: "content.metadata.labels"`:
-- `mention = currentUser() AND type = page AND lastmodified >= now("-90d") ORDER BY lastmodified DESC`
-- `contributor = currentUser() AND type = page AND lastmodified >= now("-90d") ORDER BY lastmodified DESC`
+- `mention = currentUser() AND type in (page, blogpost) AND lastmodified >= now("-90d") ORDER BY lastmodified DESC`
+- `contributor = currentUser() AND type in (page, blogpost) AND lastmodified >= now("-90d") ORDER BY lastmodified DESC`
 
 Aus den Treffern beider Abfragen Kandidaten ableiten:
 - **Labels:** alle `content.metadata.labels.results[].name` einsammeln (Labels sind oft

@@ -44,6 +44,9 @@ fest im öffentlichen Repo.
 /confluence-digest setup      → Onboarding-Interview: eigene Themen (Keywords) + Personen pflegen
 ```
 
+**Inhaltstypen:** Alle Signale erfassen sowohl **Seiten** als auch **Blogposts**
+(`type in (page, blogpost)`) – Blogposts sind ein eigener Confluence-Typ, unabhängig von Labels.
+
 **Zusammenfassungen:** Die Top-Treffer (Highlights) bekommen eine ausführliche Summary (2–4 Sätze),
 jeder weitere Gruppen-Eintrag eine kurze (2–3 Sätze). Pro Gruppe ist die Zahl der Summaries durch
 `limits.groupSummaries` gedeckelt (Default 8); darüber hinaus nur Titel + Link. `limits.highlights`
