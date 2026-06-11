@@ -1,0 +1,10 @@
+# confluence-digest – Vorlage. Beim ersten Lauf wird daraus config.local.yaml erzeugt.
+cloudId: <cloud-id>   # mayflowergmbh
+accountId: auto            # beim 1. Lauf via atlassianUserInfo gesetzt
+signals:
+  mentions: true
+  ownEdits: true
+  keywords: []             # Stufe 1.5
+  people:   []             # Stufe 2
+limits:
+  maxSummaries: 8
