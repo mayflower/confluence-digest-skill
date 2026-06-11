@@ -107,6 +107,19 @@ automatisch beim ersten Aufruf. Das Interview deckt damit **Keywords und Persone
 einmalige dezente Hinweis auf den `setup`-Befehl betrifft nur Bestandsnutzer:innen aus Stufe 1,
 die noch keine Keywords gesetzt haben.
 
+### Rauschen ausschließen (`exclude`)
+
+Manche Seiten (Admin/HR-Dauerbrenner, Meeting-Protokolle) tauchen trotz passender Keywords ständig
+auf. Der optionale `exclude`-Block in der `config.local.yaml` filtert sie aus **allen** Signal-Queries:
+
+- **`exclude.spaces`** – Liste von **Space-Keys**, die komplett ausgeschlossen werden
+  (`AND space not in (...)`). Grob: verwirft **alles** in diesen Spaces, auch evtl. relevante Seiten.
+- **`exclude.titlePatterns`** – Liste von Titel-Teilstrings (`AND title !~ "<muster>"`). Achtung:
+  Substring-Match, kann über-matchen (z.B. `"Sync"` trifft auch „Async") – Muster eng wählen.
+
+Seiten-Kopien (`"Kopie von"` / `"Copy of"` im Titel) werden **immer** per Default ausgeschlossen,
+unabhängig von der Config.
+
 ## An Kolleg:innen verteilen
 
 Den Ordner **ohne** `config.local.yaml` weitergeben (z.B. Repo klonen oder Ordner kopieren),

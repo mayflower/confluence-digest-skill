@@ -193,6 +193,8 @@ Render-Funktion bleibt, nur Ausgabeziel wechselt.
 - Kein echter Versions-Diff (MCP-Limit) – Zusammenfassung beschreibt aktuellen Stand.
 - Keine State-Datei (Fenster aus Datum).
 - Keine Teams (gestrichen). Keywords/Personen werden per `setup`-Interview gepflegt (umgesetzt).
+- **Ausschluss-Filter (`exclude`): ✅ umgesetzt** – konfigurierbarer `exclude.spaces` (`space not in (...)`)
+  + `exclude.titlePatterns` (`title !~`), an alle Signal-Queries angehängt; Seiten-Kopien („Kopie von"/„Copy of") immer per Default ausgeschlossen.
 
 ## Test
 

@@ -167,6 +167,33 @@ keine/leere `id`, löse den Namen einmalig via `mcp__<mcpServer>__lookupJiraAcco
   per `setup` bestätigen."). Die nicht-interaktive Auflösung rät also **nicht** bei Mehrdeutigkeit;
   die eindeutige Zuordnung erfolgt im `setup`-Interview.
 
+**Ausschluss-Filter (`exclude`):** An **jede** Signal-CQL aus dem vorigen Block (mentions,
+ownEdits, **je** Keyword, **je** titleKeyword, **je** Person) werden **vor `ORDER BY lastmodified
+DESC`** zusätzlich die folgenden Klauseln angehängt – die unveränderten Signal-CQLs oben bleiben
+also gleich, sie werden nur ergänzt (NICHT neu geschrieben). Das gilt in **beiden** Ausführungsmodi
+(Inline wie Fan-out – die CQL-Strings sind dort ohnehin identisch) und für **alle** Signale:
+
+1. **Immer (Default, unabhängig von der Config):**
+   `AND title !~ "Kopie von" AND title !~ "Copy of"` – schließt Seiten-Kopien aus.
+2. **Wenn `exclude.spaces` nicht leer:** `AND space not in ("<k1>","<k2>", …)` (Space-Keys).
+3. **Je Eintrag in `exclude.titlePatterns`:** `AND title !~ "<muster>"`.
+
+Beispiel einer fertig zusammengesetzten Query (mentions, mit `exclude.spaces: [hoth, OBKS]` und
+`exclude.titlePatterns: ["Jour Fixe"]`):
+
+```
+mention = currentUser() AND type in (page, blogpost) AND lastmodified >= now("<FENSTER>") AND title !~ "Kopie von" AND title !~ "Copy of" AND space not in ("hoth","OBKS") AND title !~ "Jour Fixe" ORDER BY lastmodified DESC
+```
+
+**Caveats:**
+- `title !~ "<muster>"` matcht den **Substring** – ein Muster kann über-matchen (z.B. `"Sync"`
+  trifft auch „Async"). Muster bewusst eng wählen.
+- `space not in (…)` ist **grob**: es verwirft **alles** in diesen Spaces, auch ggf. relevante
+  Seiten. Nur für Spaces nutzen, die durchgängig Rauschen sind.
+
+(Die Vorschlags-Queries im `setup`-Interview sind hiervon **nicht** betroffen – sie bleiben ohne
+Ausschluss-Klauseln.)
+
 **Antwort-Format (wichtig – nach Bedeutung mappen, nicht auf einen festen Pfad verlassen):**
 `searchConfluenceUsingCql` liefert je nach Fall eine von zwei Formen. Lies die Felder nach
 folgender Bedeutung, und nutze pro Feld den ersten vorhandenen Pfad:
