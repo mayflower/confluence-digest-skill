@@ -8,3 +8,5 @@ signals:
   people:   []             # Stufe 2
 limits:
   maxSummaries: 8
+onboarding:
+  hintShown: false         # Stufe 1.5: wird true, sobald der Keyword-Hinweis einmal gezeigt ODER `setup` gelaufen ist
