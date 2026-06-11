@@ -4,7 +4,36 @@ Personalisierter Confluence-Digest für Mayflower: ein Claude-Code-Slash-Command
 org-weit kürzlich geänderte, für dich relevante Seiten findet und einen priorisierten
 Überblick mit KI-Zusammenfassungen ausgibt.
 
-**Status:** in Entwurf. Aktuelles Design siehe [`docs/plans/`](docs/plans/).
+**Status:** Stufe 1 implementiert (`/confluence-digest`). Design & Plan siehe [`docs/plans/`](docs/plans/).
+
+## Installation
+
+Voraussetzung: Der MCP-Server **`atlassian-mayflower`** muss eingerichtet und authentifiziert sein
+(`/mcp` → `atlassian-mayflower` → authenticate, beim OAuth nur die `mayflowergmbh`-Site freigeben).
+
+Skill installieren (Symlink ins Claude-Code-Skills-Verzeichnis):
+
+```bash
+ln -s ~/Code/confluence-digest ~/.claude/skills/confluence-digest
+```
+
+Danach Claude Code neu laden. Beim ersten Aufruf erzeugt die Skill automatisch eine
+nutzer-lokale `config.local.yaml` (mit deiner via MCP ermittelten Account-ID) – die ist
+gitignored und wird nie geteilt.
+
+## Benutzung
+
+```
+/confluence-digest            → Standardfenster (24h; montags 72h = Fr–Mo)
+/confluence-digest 7d         → Override-Fenster (Nh/Nd, z.B. nach Urlaub)
+/confluence-digest --dry-run  → nur CQL + Trefferzahlen, ohne Inhalte/Zusammenfassungen
+```
+
+## An Kolleg:innen verteilen
+
+Den Ordner **ohne** `config.local.yaml` weitergeben (z.B. Repo klonen oder Ordner kopieren),
+dann denselben Symlink setzen. Jede:r bekommt beim ersten Lauf die eigene Config + Account-ID.
+Voraussetzung: eigener authentifizierter `atlassian-mayflower`-MCP.
 
 ## Geplante Ausbaustufen
 

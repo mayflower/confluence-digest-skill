@@ -24,6 +24,14 @@ Gegen `mayflowergmbh.atlassian.net` (cloudId `<cloud-id>`) bestätigt:
 
 **Konsequenz fürs Rendern:** `author.displayName` ist nicht „wer mich erwähnt hat", sondern der Seitenautor. Für Stufe 1 wird er als „zuletzt von" dargestellt, nicht als „erwähnt durch".
 
+**Korrektur aus der Live-Akzeptanz (2026-06-11):** Die Spike-Antworten oben zeigten ein
+vereinfachtes Format (`content.nodes[]`/`totalCount`/`space.name`/`author.displayName`/`webUrl`).
+Im echten Skill-Lauf liefert `searchConfluenceUsingCql` jedoch das **rohe Confluence-Search-Format**:
+`results[]`, `totalSize`, `<item>.content.id`, `<item>.resultGlobalContainer.title` (Space-Name),
+`<item>.content.history.createdBy.displayName` (Autor), `<item>.friendlyLastModified` (relativ),
+`<item>.url` (relativ; absolut via `_links.base + url`). Die `SKILL.md` mappt Felder daher nach
+Bedeutung und toleriert beide Formen (siehe SKILL.md §3 Tabelle).
+
 ---
 
 ## Wichtige Designentscheidungen für Stufe 1
