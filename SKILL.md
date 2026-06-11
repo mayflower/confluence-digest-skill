@@ -241,6 +241,8 @@ Schritte 1–6 normal, aber statt Schritt 7/8: gib pro Signal das CQL und die Ge
 plus die gerankte Trefferliste (Titel + Signale), ohne Seiten zu holen oder zusammenzufassen.
 Bei nicht-leerer `signals.keywords`: je Eintrag das `text ~`-CQL plus Gesamtzahl ausgeben;
 bei nicht-leerer `signals.titleKeywords`: je Eintrag das `title ~`-CQL plus Gesamtzahl.
+Bei nicht-leerer `signals.people`: je Person das `contributor = "<id>"`-CQL plus Gesamtzahl
+ausgeben (Name + `id`).
 
 ## setup / Onboarding-Interview
 Wird ausgelöst durch `/confluence-digest setup` **oder** beim Erststart einer neuen Nutzer:in

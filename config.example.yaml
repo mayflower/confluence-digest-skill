@@ -6,7 +6,9 @@ signals:
   ownEdits: true
   keywords: []             # Themen-Keywords, Volltext-Match (text ~). Nicht-leer = aktiv. Per `setup` befüllt (Stufe 1.5).
   titleKeywords: []        # Themen-Keywords, nur Titel-Match (title ~) – schmal, für breite Orts-/Adressbegriffe (z.B. Standort).
-  people:   []             # Stufe 2
+  people:   []             # Verfolgte Personen als {name, id}-Einträge (id = accountId), z.B.
+                           # [{name: "Vorname Nachname", id: "557058:..."}]. Nicht-leer = aktiv.
+                           # Per `setup` befüllt (Name → accountId via lookupJiraAccountId).
 limits:
   highlights: 5        # Anzahl detaillierter Highlights (Top-Score, je 2–4 Sätze)
   groupSummaries: 8    # max Kurz-Summaries (2–3 Sätze) je Restgruppe; darüber nur Titel + Link
