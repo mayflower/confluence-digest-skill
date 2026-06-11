@@ -4,7 +4,8 @@ Personalisierter Confluence-Digest für Mayflower: ein Claude-Code-Slash-Command
 org-weit kürzlich geänderte, für dich relevante Seiten findet und einen priorisierten
 Überblick mit KI-Zusammenfassungen ausgibt.
 
-**Status:** Stufe 1 implementiert (`/confluence-digest`). Design & Plan siehe [`docs/plans/`](docs/plans/).
+**Status:** Stufe 1.5 implementiert (`/confluence-digest` + `setup`-Befehl, Keyword-Signal „Deine
+Themen"). Design & Plan siehe [`docs/plans/`](docs/plans/).
 
 ## Installation
 
@@ -27,7 +28,21 @@ gitignored und wird nie geteilt.
 /confluence-digest            → Standardfenster (24h; montags 72h = Fr–Mo)
 /confluence-digest 7d         → Override-Fenster (Nh/Nd, z.B. nach Urlaub)
 /confluence-digest --dry-run  → nur CQL + Trefferzahlen, ohne Inhalte/Zusammenfassungen
+/confluence-digest setup      → Onboarding-Interview: eigene Themen (Keywords) pflegen
 ```
+
+### Eigene Themen (Keyword-Signal)
+
+Neben „mich betreffend" (Mentions + eigene Bearbeitungen) kannst du **eigene Themen** als
+Keywords pflegen. Sie werden org-weit per Volltext (`text ~`) gesucht und erscheinen im Digest
+als dritte Gruppe **„🏷️ Deine Themen"**. Das Ranking gewichtet Mentions am stärksten, dann
+eigene Bearbeitungen, dann Keyword-Treffer (Mention > ownEdit > keyword).
+
+`/confluence-digest setup` startet ein kurzes Interview: Es bestätigt deine Identität und
+schlägt Themen aus Labels und Titeln deiner jüngsten Aktivität vor. Du wählst aus, streichst
+oder ergänzt frei und die Auswahl landet in deiner `config.local.yaml`. **Neue Nutzer:innen**
+durchlaufen dieses Interview automatisch beim ersten Aufruf. Solange noch keine Keywords gesetzt
+sind, weist der Digest einmalig dezent auf den `setup`-Befehl hin.
 
 ## An Kolleg:innen verteilen
 
@@ -40,6 +55,7 @@ Voraussetzung: eigener authentifizierter `atlassian-mayflower`-MCP.
 1. **Stufe 1:** Slash-Command, Ausgabe im Chat, Relevanz = „mich betreffend" (Mentions + eigene
    Bearbeitungen) + Mini-Onboarding (Identität automatisch erkennen).
 2. **Stufe 1.5:** Erststart-Hybrid-Interview + Keyword-Signal, `setup`-Befehl zum Re-Konfigurieren.
+   ✅ implementiert.
 3. **Stufe 2:** Personen/Teams-Signal, geplanter Lauf, Ausgabe als Datei/Confluence-Seite.
 4. **Stufe 3:** macOS-Desktop-App auf Basis derselben Logik.
 
