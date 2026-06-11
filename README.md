@@ -104,3 +104,7 @@ Voraussetzung: eigener authentifizierter `atlassian-mayflower`-MCP.
 - **Struktur:** Top-Highlights oben (ausführlich) + nach Signal gruppierte Restliste (kürzer).
 - **Verteilbarkeit:** Logik generisch, persönliche Daten in nutzer-lokaler Config (gitignored),
   Account-ID automatisch via Atlassian-MCP ermittelt.
+
+## Lizenz
+
+MIT – siehe [LICENSE](LICENSE). © 2026 Mayflower GmbH.
