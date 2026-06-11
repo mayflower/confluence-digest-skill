@@ -1,0 +1,11 @@
+# macOS
+.DS_Store
+
+# Nutzer-spezifische Config (nie teilen – enthält Account-ID, persönliche Keywords/Personen)
+config.local.*
+*.local.yaml
+*.local.yml
+*.local.json
+
+# Lokale Notizen / Scratch
+scratch/
