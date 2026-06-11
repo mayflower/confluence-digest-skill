@@ -10,6 +10,9 @@ signals:
   people:   []             # Verfolgte Personen als {name, id}-Einträge (id = accountId), z.B.
                            # [{name: "Vorname Nachname", id: "557058:..."}]. Nicht-leer = aktiv.
                            # Per `setup` befüllt (Name → accountId via lookupJiraAccountId).
+exclude:
+  spaces: []          # Space-Keys ausschließen → AND space not in (...)
+  titlePatterns: []   # Titel-Teilstrings ausschließen → je Eintrag AND title !~ "<muster>" (Substring – kann über-matchen, z.B. "Sync" trifft auch "Async")
 limits:
   highlights: 5        # Anzahl detaillierter Highlights (Top-Score, je 2–4 Sätze)
   groupSummaries: 8    # max Kurz-Summaries (2–3 Sätze) je Restgruppe; darüber nur Titel + Link
