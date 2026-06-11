@@ -3,11 +3,11 @@ name: confluence-digest
 description: Use when the user runs /confluence-digest (optionally with a time window `Nh`/`Nd`, z.B. 24h, 72h, 7d) to get a prioritized overview of recently changed Confluence pages (mayflowergmbh) relevant to them — pages they are mentioned on or have contributed to, plus optional topic keywords — with AI summaries; `/confluence-digest setup` runs an interview to maintain those topics/keywords. Triggers: /confluence-digest, Confluence-Überblick, was ist neu in Confluence, Confluence-Digest, confluence-digest setup, eigene Themen/Keywords pflegen.
 ---
 
-# Confluence-Digest (Stufe 1.5)
+# Confluence-Digest (Stufe 2a)
 
 Priorisierter Überblick über kürzlich geänderte, für die Nutzer:in relevante Confluence-Seiten
-auf `mayflowergmbh`. Signal „mich betreffend" (Mentions + eigene Bearbeitungen) plus optionale
-Themen-Keywords („Deine Themen").
+auf `mayflowergmbh`. Signal „mich betreffend" (Mentions + eigene Bearbeitungen), optionale
+Themen-Keywords („Deine Themen") und optional verfolgte Personen („Verfolgte Personen").
 
 **Datenquelle:** MCP-Server `atlassian-mayflower` (Tools `mcp__atlassian-mayflower__*`).
 **Konfiguration:** `config.local.yaml` im Skill-Verzeichnis (nutzer-lokal, gitignored).
